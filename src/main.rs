@@ -50,8 +50,6 @@ async fn main() {
 
     let args = Args::parse();
 
-    info!("Hello World!");
-    info!("Embedded files:");
     for file in Asset::iter() {
         info!(" - {}", file.as_ref());
     }
