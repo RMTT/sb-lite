@@ -1,24 +1,56 @@
+import { useState, useEffect } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
-import { LayoutDashboard, Activity } from 'lucide-react'
+import { LayoutDashboard, Activity, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 
 export function DashboardLayout() {
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    const saved = localStorage.getItem('sidebar-collapsed')
+    return saved === 'true'
+  })
+
+  useEffect(() => {
+    localStorage.setItem('sidebar-collapsed', String(isCollapsed))
+  }, [isCollapsed])
+
   return (
     <div className="flex h-screen bg-[#09090b] text-zinc-100 font-sans selection:bg-indigo-500/30">
       {/* Sidebar */}
-      <aside className="w-64 bg-[#09090b] border-r border-zinc-800/50 flex flex-col">
+      <aside
+        className={`${
+          isCollapsed ? 'w-16' : 'w-64'
+        } bg-[#09090b] border-r border-zinc-800/50 flex flex-col transition-all duration-300 ease-in-out`}
+      >
         {/* Brand / Title */}
-        <div className="flex h-16 shrink-0 items-center px-6 border-b border-zinc-800/50">
-          <div className="flex items-center gap-2 font-semibold text-lg tracking-tight text-zinc-100">
-            <Activity className="h-5 w-5 text-indigo-500" />
-            <span>Dashboard</span>
+        <div className="flex h-16 shrink-0 items-center justify-between px-4 border-b border-zinc-800/50">
+          <div className="flex items-center gap-2 font-semibold text-lg tracking-tight text-zinc-100 overflow-hidden">
+            <Activity className="h-5 w-5 shrink-0 text-indigo-500" />
+            <span
+              className={`whitespace-nowrap transition-all duration-300 ${
+                isCollapsed ? 'opacity-0 w-0' : 'opacity-100 w-auto'
+              }`}
+            >
+              Dashboard
+            </span>
           </div>
+          <button
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            className="p-1.5 rounded-md hover:bg-zinc-800/50 text-zinc-400 hover:text-zinc-100 transition-colors"
+            title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+          >
+            {isCollapsed ? (
+              <PanelLeftOpen className="h-4 w-4" />
+            ) : (
+              <PanelLeftClose className="h-4 w-4" />
+            )}
+          </button>
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
+        <nav className="flex-1 p-3 space-y-1 overflow-y-auto overflow-x-hidden">
           <NavLink
             to="/"
             end
+            title="Overview"
             className={({ isActive }) =>
               `flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md transition-all duration-200 ${
                 isActive
@@ -28,7 +60,13 @@ export function DashboardLayout() {
             }
           >
             <LayoutDashboard className="h-4 w-4 shrink-0" />
-            Overview
+            <span
+              className={`whitespace-nowrap transition-all duration-300 ${
+                isCollapsed ? 'opacity-0 w-0 hidden' : 'opacity-100 w-auto'
+              }`}
+            >
+              Overview
+            </span>
           </NavLink>
         </nav>
       </aside>
