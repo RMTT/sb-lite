@@ -50,10 +50,6 @@ async fn main() {
 
     let args = Args::parse();
 
-    for file in Asset::iter() {
-        info!(" - {}", file.as_ref());
-    }
-
     let app = Router::new().fallback(get(static_handler));
 
     let addr = format!("0.0.0.0:{}", args.port);
