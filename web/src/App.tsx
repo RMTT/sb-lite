@@ -1,22 +1,54 @@
-import { BrowserRouter, Routes, Route, Link } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Link, Outlet } from 'react-router-dom'
 import './App.css'
 
-function Home() {
+function DashboardLayout() {
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 text-gray-900">
-      <h1 className="text-4xl font-bold mb-4 text-blue-600">Hello World</h1>
-      <p className="text-lg">Welcome to the bundled frontend and backend app!</p>
-      <Link to="/about" className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-700 transition">Go to About</Link>
+    <div className="flex h-screen bg-gray-900 text-white font-sans">
+      {/* Sidebar */}
+      <aside className="w-64 bg-gray-800 border-r border-gray-700 flex flex-col">
+        <div className="p-6 border-b border-gray-700">
+          <h1 className="text-2xl font-bold tracking-wider text-gray-100">Dashboard</h1>
+        </div>
+        <nav className="flex-1 p-4 space-y-2">
+          <Link
+            to="/"
+            className="block px-4 py-2 rounded-md hover:bg-gray-700 hover:text-white transition-colors text-gray-300"
+          >
+            Overview
+          </Link>
+        </nav>
+      </aside>
+
+      {/* Main Content */}
+      <main className="flex-1 overflow-y-auto p-8 bg-gray-900">
+        <Outlet />
+      </main>
     </div>
   )
 }
 
-function About() {
+function Overview() {
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 text-gray-900">
-      <h1 className="text-4xl font-bold mb-4 text-green-600">About</h1>
-      <p className="text-lg">This is the about page. React Router is working!</p>
-      <Link to="/" className="mt-4 px-4 py-2 bg-green-500 text-white rounded hover:bg-green-700 transition">Go to Home</Link>
+    <div className="space-y-6">
+      <h2 className="text-3xl font-semibold text-gray-100">Overview</h2>
+      <div className="bg-gray-800 rounded-lg p-6 border border-gray-700 shadow-md">
+        <p className="text-gray-400">
+          Welcome to your dashboard. This area will display key metrics and summaries.
+        </p>
+      </div>
+
+      {/* Placeholders for future widgets */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+         <div className="bg-gray-800 h-32 rounded-lg border border-gray-700 shadow flex items-center justify-center text-gray-500">
+            Widget Placeholder
+         </div>
+         <div className="bg-gray-800 h-32 rounded-lg border border-gray-700 shadow flex items-center justify-center text-gray-500">
+            Widget Placeholder
+         </div>
+         <div className="bg-gray-800 h-32 rounded-lg border border-gray-700 shadow flex items-center justify-center text-gray-500">
+            Widget Placeholder
+         </div>
+      </div>
     </div>
   )
 }
@@ -25,8 +57,9 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/about" element={<About />} />
+        <Route path="/" element={<DashboardLayout />}>
+          <Route index element={<Overview />} />
+        </Route>
       </Routes>
     </BrowserRouter>
   )
