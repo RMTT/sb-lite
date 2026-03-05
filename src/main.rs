@@ -11,6 +11,7 @@ use rust_embed::Embed;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use std::sync::Arc;
+use tokio::sync::RwLock;
 
 #[derive(Parser, Debug, Clone)]
 #[command(version, about, long_about = None)]
@@ -33,37 +34,29 @@ struct Asset;
 #[derive(Clone)]
 struct AppState {
     args: Arc<Args>,
+    persisted_state: Arc<RwLock<PersistedState>>,
 }
 
-#[derive(Serialize, Deserialize)]
-struct ActiveConfigState {
+#[derive(Serialize, Deserialize, Default, Clone)]
+struct PersistedState {
     active_config: Option<String>,
 }
 
 impl AppState {
     fn state_file_path(&self) -> PathBuf {
-        self.args.state_directory.join("state.bin")
+        self.args.state_directory.join("state")
     }
 
     async fn get_active_config(&self) -> Option<String> {
-        let path = self.state_file_path();
-        match tokio::fs::read(&path).await {
-            Ok(bytes) => match bincode::deserialize::<ActiveConfigState>(&bytes) {
-                Ok(state) => state.active_config,
-                Err(e) => {
-                    error!("Failed to deserialize state file: {}", e);
-                    None
-                }
-            },
-            Err(_) => None,
-        }
+        let state = self.persisted_state.read().await;
+        state.active_config.clone()
     }
 
     async fn set_active_config(&self, filename: String) -> Result<(), String> {
-        let state = ActiveConfigState {
-            active_config: Some(filename),
-        };
-        let bytes = bincode::serialize(&state).map_err(|e| e.to_string())?;
+        let mut state = self.persisted_state.write().await;
+        state.active_config = Some(filename);
+
+        let bytes = bincode::serialize(&*state).map_err(|e| e.to_string())?;
         tokio::fs::write(self.state_file_path(), bytes)
             .await
             .map_err(|e| e.to_string())
@@ -273,8 +266,24 @@ async fn main() {
     }
     info!("Using state directory at: {:?}", args.state_directory);
 
+    let state_file_path = args.state_directory.join("state");
+    let persisted_state = match std::fs::read(&state_file_path) {
+        Ok(bytes) => match bincode::deserialize::<PersistedState>(&bytes) {
+            Ok(state) => state,
+            Err(e) => {
+                error!(
+                    "Failed to deserialize state file: {}. Starting with default state.",
+                    e
+                );
+                PersistedState::default()
+            }
+        },
+        Err(_) => PersistedState::default(),
+    };
+
     let shared_state = AppState {
         args: Arc::new(args.clone()),
+        persisted_state: Arc::new(RwLock::new(persisted_state)),
     };
 
     let app = Router::new()

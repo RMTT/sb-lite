@@ -9,7 +9,7 @@ function App() {
   return (
     <BrowserRouter>
       <Toaster
-        position="top-right"
+        position="top-center"
         theme="dark"
         toastOptions={{
           className: 'bg-[#18181b] border-zinc-800 text-zinc-100'
