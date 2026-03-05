@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@plugin "daisyui";
 
 @layer utilities {
   .custom-scrollbar::-webkit-scrollbar {
@@ -9,9 +10,9 @@
     background: transparent;
   }
   .custom-scrollbar::-webkit-scrollbar-thumb {
-    @apply bg-zinc-800 rounded-full border-2 border-transparent bg-clip-padding;
+    @apply bg-base-300 rounded-full border-2 border-transparent bg-clip-padding;
   }
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    @apply bg-zinc-700;
+    @apply bg-base-content/50;
   }
 }

@@ -13,17 +13,17 @@ export function DashboardLayout() {
   }, [isCollapsed])
 
   return (
-    <div className="flex h-screen bg-[#09090b] text-zinc-100 font-sans selection:bg-indigo-500/30">
+    <div className="flex h-screen bg-base-100 text-base-content font-sans">
       {/* Sidebar */}
       <aside
         className={`${
-          isCollapsed ? 'w-16' : 'w-64'
-        } bg-[#09090b] border-r border-zinc-700 shadow-[4px_0_24px_-4px_rgba(0,0,0,0.5)] z-10 flex flex-col transition-all duration-300 ease-in-out`}
+          isCollapsed ? 'w-20' : 'w-64'
+        } bg-base-200 border-r border-base-300 z-10 flex flex-col transition-all duration-300 ease-in-out`}
       >
         {/* Brand / Title */}
-        <div className="flex h-16 shrink-0 items-center justify-between px-4 border-b border-zinc-800/50">
-          <div className="flex items-center gap-2 font-semibold text-lg tracking-tight text-zinc-100 overflow-hidden">
-            <Activity className="h-5 w-5 shrink-0 text-indigo-500" />
+        <div className="flex h-16 shrink-0 items-center justify-between px-4 border-b border-base-300">
+          <div className="flex items-center gap-2 font-semibold text-lg tracking-tight overflow-hidden">
+            <Activity className="h-5 w-5 shrink-0 text-primary" />
             <span
               className={`whitespace-nowrap transition-all duration-300 ${
                 isCollapsed ? 'opacity-0 w-0' : 'opacity-100 w-auto'
@@ -34,7 +34,7 @@ export function DashboardLayout() {
           </div>
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
-            className="p-1.5 rounded-md hover:bg-zinc-800/50 text-zinc-400 hover:text-zinc-100 transition-colors"
+            className="btn btn-ghost btn-square btn-sm"
             title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
           >
             {isCollapsed ? (
@@ -46,54 +46,45 @@ export function DashboardLayout() {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 p-3 space-y-1 overflow-y-auto overflow-x-hidden">
-          <NavLink
-            to="/"
-            end
-            title="Overview"
-            className={({ isActive }) =>
-              `flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md transition-all duration-200 ${
-                isActive
-                  ? 'bg-indigo-500/10 text-indigo-400'
-                  : 'text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-100'
-              }`
-            }
-          >
-            <LayoutDashboard className="h-4 w-4 shrink-0" />
-            <span
-              className={`whitespace-nowrap transition-all duration-300 ${
-                isCollapsed ? 'opacity-0 w-0 hidden' : 'opacity-100 w-auto'
-              }`}
+        <ul className="menu flex-1 p-3 gap-2 overflow-y-auto overflow-x-hidden">
+          <li>
+            <NavLink
+              to="/"
+              end
+              title="Overview"
+              className={({ isActive }) => `${isActive ? 'active' : ''}`}
             >
-              Overview
-            </span>
-          </NavLink>
-
-          <NavLink
-            to="/config"
-            title="Config"
-            className={({ isActive }) =>
-              `flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md transition-all duration-200 ${
-                isActive
-                  ? 'bg-indigo-500/10 text-indigo-400'
-                  : 'text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-100'
-              }`
-            }
-          >
-            <Settings className="h-4 w-4 shrink-0" />
-            <span
-              className={`whitespace-nowrap transition-all duration-300 ${
-                isCollapsed ? 'opacity-0 w-0 hidden' : 'opacity-100 w-auto'
-              }`}
+              <LayoutDashboard className="h-5 w-5 shrink-0" />
+              <span
+                className={`whitespace-nowrap transition-all duration-300 ${
+                  isCollapsed ? 'opacity-0 w-0 hidden' : 'opacity-100 w-auto'
+                }`}
+              >
+                Overview
+              </span>
+            </NavLink>
+          </li>
+          <li>
+            <NavLink
+              to="/config"
+              title="Config"
+              className={({ isActive }) => `${isActive ? 'active' : ''}`}
             >
-              Config
-            </span>
-          </NavLink>
-        </nav>
+              <Settings className="h-5 w-5 shrink-0" />
+              <span
+                className={`whitespace-nowrap transition-all duration-300 ${
+                  isCollapsed ? 'opacity-0 w-0 hidden' : 'opacity-100 w-auto'
+                }`}
+              >
+                Config
+              </span>
+            </NavLink>
+          </li>
+        </ul>
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto bg-[#09090b]">
+      <main className="flex-1 overflow-y-auto bg-base-100">
         <div className="max-w-7xl mx-auto p-8">
           <Outlet />
         </div>

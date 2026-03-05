@@ -343,14 +343,14 @@ export function Config() {
 
   return (
     <div className="space-y-8 pb-24">
-      <h1 className="text-2xl font-semibold tracking-tight text-zinc-100">Configuration</h1>
+      <h1 className="text-2xl font-semibold tracking-tight text-base-content">Configuration</h1>
 
       {/* Configs Card */}
-      <div className="bg-[#09090b] border border-zinc-800/50 rounded-xl overflow-hidden shadow-sm">
-          <div className="p-5 border-b border-zinc-800/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="card bg-base-200 shadow-sm border border-base-300">
+          <div className="card-body p-5 border-b border-base-300 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                  <h2 className="text-lg font-medium text-zinc-100">Local Configurations</h2>
-                  <p className="text-sm text-zinc-400 mt-1">Manage and select your sing-box configuration files.</p>
+                  <h2 className="text-lg font-medium text-base-content">Local Configurations</h2>
+                  <p className="text-sm text-base-content/60 mt-1">Manage and select your sing-box configuration files.</p>
               </div>
               <div className="flex items-center gap-3">
                   <button
@@ -358,7 +358,7 @@ export function Config() {
                         setCreateFileName('')
                         setIsCreateOpen(true)
                     }}
-                    className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-zinc-300 bg-zinc-800/50 hover:bg-zinc-800 hover:text-zinc-100 border border-zinc-700/50 rounded-md transition-colors shadow-sm"
+                    className="btn btn-sm btn-outline"
                     disabled={isLoading || isSaving}
                   >
                     <Plus className="h-4 w-4" />
@@ -366,7 +366,7 @@ export function Config() {
                   </button>
                   <button
                     onClick={() => fileInputRef.current?.click()}
-                    className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-zinc-300 bg-zinc-800/50 hover:bg-zinc-800 hover:text-zinc-100 border border-zinc-700/50 rounded-md transition-colors shadow-sm"
+                    className="btn btn-sm btn-outline"
                     disabled={isLoading || isSaving}
                   >
                     <UploadCloud className="h-4 w-4" />
@@ -382,7 +382,7 @@ export function Config() {
 
                   <button
                       onClick={fetchConfigs}
-                      className="p-1.5 text-zinc-400 hover:text-zinc-100 bg-zinc-800/50 hover:bg-zinc-800 border border-zinc-700/50 rounded-md transition-colors"
+                      className="btn btn-sm btn-square btn-ghost"
                       title="Reload Configs"
                       disabled={isLoading}
                   >
@@ -390,20 +390,20 @@ export function Config() {
                   </button>
               </div>
           </div>
-          <div className="bg-[#09090b]">
+          <div className="bg-base-200">
               {configs.length === 0 && !isLoading ? (
-                  <div className="p-8 text-center text-zinc-500 text-sm">
+                  <div className="p-8 text-center text-base-content/50 text-sm">
                       No configuration files found. Upload one to get started.
                   </div>
               ) : (
                   <ul className="divide-y divide-zinc-800/50 max-h-[35vh] overflow-y-auto custom-scrollbar">
                       {sortedConfigs.map((filename) => (
-                          <li key={filename} className="flex items-center justify-between p-4 hover:bg-zinc-800/30 transition-colors">
+                          <li key={filename} className="flex items-center justify-between p-4 hover:bg-base-300/50 transition-colors">
                               <div className="flex items-center gap-3">
-                                  <FileJson className="h-5 w-5 text-indigo-400" />
-                                  <span className="font-medium text-zinc-200">{filename}</span>
+                                  <FileJson className="h-5 w-5 text-primary" />
+                                  <span className="font-medium text-base-content/90">{filename}</span>
                                   {activeConfig === filename && (
-                                      <span className="px-2 py-0.5 text-[10px] uppercase tracking-wider font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-full">
+                                      <span className="badge badge-success badge-sm badge-outline">
                                           Active
                                       </span>
                                   )}
@@ -412,11 +412,11 @@ export function Config() {
                                   <button
                                       onClick={() => handleApplyConfig(filename)}
                                       disabled={isLoading || activeConfig === filename}
-                                      className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md transition-colors shadow-sm ${
+                                      className={`btn btn-sm ${
                                           activeConfig === filename
-                                          ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed'
-                                          : 'bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 border border-indigo-500/20'
-                                      }`}
+                                          ? 'bg-base-300 text-base-content/50 cursor-not-allowed'
+                                          : 'bg-primary/10 text-primary hover:bg-primary/20 border border-indigo-500/20'
+                                       }`}
                                       title="Apply this configuration"
                                   >
                                       <Play className="h-3.5 w-3.5" />
@@ -425,7 +425,7 @@ export function Config() {
                                   <button
                                       onClick={() => handleOpenEditor(filename)}
                                       disabled={isLoading}
-                                      className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-zinc-300 bg-zinc-800/50 hover:bg-zinc-800 hover:text-zinc-100 border border-zinc-700/50 rounded-md transition-colors shadow-sm"
+                                      className="btn btn-sm btn-outline"
                                   >
                                       <Edit className="h-3.5 w-3.5" />
                                       Edit
@@ -439,16 +439,16 @@ export function Config() {
       </div>
 
       {/* Custom Fields Settings Card */}
-      <div className="bg-[#09090b] border border-zinc-800/50 rounded-xl overflow-hidden shadow-sm flex flex-col">
-          <div className="p-5 border-b border-zinc-800/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="card bg-base-200 shadow-sm border border-base-300">
+          <div className="card-body p-5 border-b border-base-300 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                  <h2 className="text-lg font-medium text-zinc-100">Custom Settings</h2>
-                  <p className="text-sm text-zinc-400 mt-1">Configure remote subscriptions and proxy selectors.</p>
+                  <h2 className="text-lg font-medium text-base-content">Custom Settings</h2>
+                  <p className="text-sm text-base-content/60 mt-1">Configure remote subscriptions and proxy selectors.</p>
               </div>
               <button
                   onClick={handleSaveCustomFields}
                   disabled={isSavingCustomFields}
-                  className="flex items-center gap-2 px-4 py-1.5 text-sm font-medium bg-indigo-500 text-white rounded-md hover:bg-indigo-600 transition-colors shadow-sm disabled:opacity-50"
+                  className="btn btn-sm btn-primary"
               >
                   {isSavingCustomFields ? (
                       <RefreshCw className="h-4 w-4 animate-spin" />
@@ -462,14 +462,14 @@ export function Config() {
           <div className="p-5 space-y-8">
               {/* Subscription URLs Section */}
               <div className="space-y-4">
-                  <h3 className="text-sm font-medium text-zinc-300">Subscription URLs</h3>
+                  <h3 className="text-sm font-medium text-base-content/80">Subscription URLs</h3>
                   <div className="flex gap-2">
                       <input
                           type="text"
                           value={newUrl}
                           onChange={(e) => setNewUrl(e.target.value)}
                           placeholder="https://example.com/subscribe"
-                          className="flex-1 bg-[#18181b] border border-zinc-700 rounded-md px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500"
+                          className="flex-1 bg-base-100 border border-base-300 rounded-md px-3 py-2 text-sm text-base-content focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500"
                           onKeyDown={(e) => {
                               if (e.key === 'Enter') handleAddUrl()
                           }}
@@ -477,7 +477,7 @@ export function Config() {
                       <button
                           onClick={handleAddUrl}
                           disabled={!newUrl.trim()}
-                          className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-zinc-800 text-zinc-100 rounded-md hover:bg-zinc-700 transition-colors shadow-sm disabled:opacity-50"
+                          className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-base-300 text-base-content rounded-md hover:border-base-300 transition-colors shadow-sm disabled:opacity-50"
                       >
                           <Plus className="h-4 w-4" />
                           Add URL
@@ -485,17 +485,17 @@ export function Config() {
                   </div>
 
                   {subscriptionUrls.length === 0 ? (
-                      <div className="text-sm text-zinc-500 text-center py-4 bg-[#18181b]/50 rounded-md border border-zinc-800/50">
+                      <div className="text-sm text-base-content/50 text-center py-4 bg-base-100/50 rounded-md border border-base-300">
                           No subscription URLs added yet.
                       </div>
                   ) : (
                       <ul className="space-y-2">
                           {subscriptionUrls.map((url, idx) => (
-                              <li key={idx} className="flex items-center justify-between bg-[#18181b] border border-zinc-800 rounded-md px-3 py-2 text-sm">
-                                  <span className="text-zinc-300 truncate mr-4">{url}</span>
+                              <li key={idx} className="flex items-center justify-between bg-base-100 border border-zinc-800 rounded-md px-3 py-2 text-sm">
+                                  <span className="text-base-content/80 truncate mr-4">{url}</span>
                                   <button
                                       onClick={() => handleRemoveUrl(idx)}
-                                      className="text-zinc-500 hover:text-red-400 transition-colors shrink-0"
+                                      className="text-base-content/50 hover:text-red-400 transition-colors shrink-0"
                                       title="Remove URL"
                                   >
                                       <Trash2 className="h-4 w-4" />
@@ -506,40 +506,40 @@ export function Config() {
                   )}
               </div>
 
-              <div className="h-px bg-zinc-800/50 w-full" />
+              <div className="h-px bg-base-300 w-full" />
 
               {/* Selectors Section */}
               <div className="space-y-4">
-                  <h3 className="text-sm font-medium text-zinc-300">Selectors</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-end bg-[#18181b] p-4 rounded-lg border border-zinc-800">
+                  <h3 className="text-sm font-medium text-base-content/80">Selectors</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-end bg-base-100 p-4 rounded-lg border border-zinc-800">
                       <div className="space-y-1 lg:col-span-1">
-                          <label className="text-xs font-medium text-zinc-400">Name</label>
+                          <label className="text-xs font-medium text-base-content/60">Name</label>
                           <input
                               type="text"
                               value={newSelector.name}
                               onChange={(e) => setNewSelector({...newSelector, name: e.target.value})}
                               placeholder="e.g. US Nodes"
-                              className="w-full bg-[#09090b] border border-zinc-700 rounded-md px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500"
+                              className="w-full bg-base-200 border border-base-300 rounded-md px-3 py-2 text-sm text-base-content focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500"
                           />
                       </div>
                       <div className="space-y-1 lg:col-span-1">
-                          <label className="text-xs font-medium text-zinc-400">Regex</label>
+                          <label className="text-xs font-medium text-base-content/60">Regex</label>
                           <input
                               type="text"
                               value={newSelector.regex}
                               onChange={(e) => setNewSelector({...newSelector, regex: e.target.value})}
                               placeholder="e.g. .*US.*"
-                              className="w-full bg-[#09090b] border border-zinc-700 rounded-md px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500"
+                              className="w-full bg-base-200 border border-base-300 rounded-md px-3 py-2 text-sm text-base-content focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500"
                           />
                       </div>
                       <div className="space-y-1 lg:col-span-1">
-                          <label className="text-xs font-medium text-zinc-400">Default (Optional)</label>
+                          <label className="text-xs font-medium text-base-content/60">Default (Optional)</label>
                           <input
                               type="text"
                               value={newSelector.default}
                               onChange={(e) => setNewSelector({...newSelector, default: e.target.value})}
                               placeholder="Fallback tag"
-                              className="w-full bg-[#09090b] border border-zinc-700 rounded-md px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500"
+                              className="w-full bg-base-200 border border-base-300 rounded-md px-3 py-2 text-sm text-base-content focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500"
                           />
                       </div>
                       <div className="space-y-1 lg:col-span-1 flex items-center h-full pb-2">
@@ -548,15 +548,15 @@ export function Config() {
                                   type="checkbox"
                                   checked={newSelector.interrupt_exist_connections}
                                   onChange={(e) => setNewSelector({...newSelector, interrupt_exist_connections: e.target.checked})}
-                                  className="w-4 h-4 rounded border-zinc-700 bg-[#09090b] text-indigo-500 focus:ring-indigo-500/50 focus:ring-offset-0"
+                                  className="w-4 h-4 rounded border-base-300 bg-base-200 text-primary focus:ring-indigo-500/50 focus:ring-offset-0"
                               />
-                              <span className="text-xs font-medium text-zinc-400 select-none">Interrupt connections</span>
+                              <span className="text-xs font-medium text-base-content/60 select-none">Interrupt connections</span>
                           </label>
                       </div>
                       <div className="lg:col-span-1">
                           <button
                               onClick={handleAddSelector}
-                              className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium bg-zinc-800 text-zinc-100 rounded-md hover:bg-zinc-700 transition-colors shadow-sm"
+                              className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium bg-base-300 text-base-content rounded-md hover:border-base-300 transition-colors shadow-sm"
                           >
                               <Plus className="h-4 w-4" />
                               Add
@@ -565,13 +565,13 @@ export function Config() {
                   </div>
 
                   {selectors.length === 0 ? (
-                      <div className="text-sm text-zinc-500 text-center py-4 bg-[#18181b]/50 rounded-md border border-zinc-800/50">
+                      <div className="text-sm text-base-content/50 text-center py-4 bg-base-100/50 rounded-md border border-base-300">
                           No selectors added yet.
                       </div>
                   ) : (
                       <div className="overflow-x-auto rounded-md border border-zinc-800">
                           <table className="w-full text-sm text-left">
-                              <thead className="text-xs text-zinc-400 bg-[#18181b] border-b border-zinc-800">
+                              <thead className="text-xs text-base-content/60 bg-base-100 border-b border-zinc-800">
                                   <tr>
                                       <th className="px-4 py-3 font-medium">Name</th>
                                       <th className="px-4 py-3 font-medium">Regex</th>
@@ -580,23 +580,23 @@ export function Config() {
                                       <th className="px-4 py-3 font-medium text-right">Actions</th>
                                   </tr>
                               </thead>
-                              <tbody className="divide-y divide-zinc-800/50 bg-[#09090b]/50">
+                              <tbody className="divide-y divide-zinc-800/50 bg-base-200/50">
                                   {selectors.map((sel, idx) => (
-                                      <tr key={idx} className="hover:bg-zinc-800/30 transition-colors">
-                                          <td className="px-4 py-2.5 text-zinc-200">{sel.name}</td>
-                                          <td className="px-4 py-2.5 text-zinc-400 font-mono text-xs">{sel.regex}</td>
-                                          <td className="px-4 py-2.5 text-zinc-400">{sel.default || '-'}</td>
+                                      <tr key={idx} className="hover:bg-base-300/50 transition-colors">
+                                          <td className="px-4 py-2.5 text-base-content/90">{sel.name}</td>
+                                          <td className="px-4 py-2.5 text-base-content/60 font-mono text-xs">{sel.regex}</td>
+                                          <td className="px-4 py-2.5 text-base-content/60">{sel.default || '-'}</td>
                                           <td className="px-4 py-2.5 text-center">
                                               {sel.interrupt_exist_connections ? (
                                                   <span className="text-emerald-400 font-medium">Yes</span>
                                               ) : (
-                                                  <span className="text-zinc-500">No</span>
+                                                  <span className="text-base-content/50">No</span>
                                               )}
                                           </td>
                                           <td className="px-4 py-2.5 text-right">
                                               <button
                                                   onClick={() => handleRemoveSelector(idx)}
-                                                  className="text-zinc-500 hover:text-red-400 transition-colors p-1.5 rounded-md hover:bg-zinc-800"
+                                                  className="text-base-content/50 hover:text-red-400 transition-colors p-1.5 rounded-md hover:bg-base-300"
                                                   title="Remove Selector"
                                               >
                                                   <Trash2 className="h-4 w-4" />
@@ -615,16 +615,16 @@ export function Config() {
       {/* Upload Name Modal */}
       {isUploadOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-              <div className="bg-[#18181b] border border-zinc-800 rounded-lg shadow-2xl w-full max-w-md overflow-hidden">
-                  <div className="p-4 border-b border-zinc-800/50 flex justify-between items-center">
-                      <h3 className="text-lg font-medium text-zinc-100">Upload Configuration</h3>
-                      <button onClick={() => setIsUploadOpen(false)} className="text-zinc-400 hover:text-zinc-100">
+              <div className="bg-base-100 border border-zinc-800 rounded-lg shadow-2xl w-full max-w-md overflow-hidden">
+                  <div className="p-4 border-b border-base-300 flex justify-between items-center">
+                      <h3 className="text-lg font-medium text-base-content">Upload Configuration</h3>
+                      <button onClick={() => setIsUploadOpen(false)} className="text-base-content/60 hover:text-base-content">
                           <X className="h-5 w-5" />
                       </button>
                   </div>
                   <div className="p-4 space-y-4">
                       <div>
-                          <label htmlFor="filename" className="block text-sm font-medium text-zinc-400 mb-1">
+                          <label htmlFor="filename" className="block text-sm font-medium text-base-content/60 mb-1">
                               Save file as:
                           </label>
                           <input
@@ -632,22 +632,22 @@ export function Config() {
                               id="filename"
                               value={uploadFileName}
                               onChange={(e) => setUploadFileName(e.target.value)}
-                              className="w-full bg-[#09090b] border border-zinc-700 rounded-md px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500"
+                              className="w-full bg-base-200 border border-base-300 rounded-md px-3 py-2 text-sm text-base-content focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500"
                               autoFocus
                           />
                       </div>
                   </div>
-                  <div className="p-4 bg-[#09090b] border-t border-zinc-800/50 flex justify-end gap-2">
+                  <div className="p-4 bg-base-200 border-t border-base-300 flex justify-end gap-2">
                       <button
                           onClick={() => setIsUploadOpen(false)}
-                          className="px-4 py-2 text-sm font-medium text-zinc-400 hover:text-zinc-100 transition-colors"
+                          className="px-4 py-2 text-sm font-medium text-base-content/60 hover:text-base-content transition-colors"
                       >
                           Cancel
                       </button>
                       <button
                           onClick={handleUploadSubmit}
                           disabled={isSaving}
-                          className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-indigo-500 text-white rounded-md hover:bg-indigo-600 transition-colors shadow-sm disabled:opacity-50"
+                          className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-primary text-white rounded-md hover:bg-primary-focus transition-colors shadow-sm disabled:opacity-50"
                       >
                           {isSaving && <RefreshCw className="h-4 w-4 animate-spin" />}
                           Save Upload
@@ -660,16 +660,16 @@ export function Config() {
       {/* Create Name Modal */}
       {isCreateOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-              <div className="bg-[#18181b] border border-zinc-800 rounded-lg shadow-2xl w-full max-w-md overflow-hidden">
-                  <div className="p-4 border-b border-zinc-800/50 flex justify-between items-center">
-                      <h3 className="text-lg font-medium text-zinc-100">Create Configuration</h3>
-                      <button onClick={() => setIsCreateOpen(false)} className="text-zinc-400 hover:text-zinc-100">
+              <div className="bg-base-100 border border-zinc-800 rounded-lg shadow-2xl w-full max-w-md overflow-hidden">
+                  <div className="p-4 border-b border-base-300 flex justify-between items-center">
+                      <h3 className="text-lg font-medium text-base-content">Create Configuration</h3>
+                      <button onClick={() => setIsCreateOpen(false)} className="text-base-content/60 hover:text-base-content">
                           <X className="h-5 w-5" />
                       </button>
                   </div>
                   <div className="p-4 space-y-4">
                       <div>
-                          <label htmlFor="createFileName" className="block text-sm font-medium text-zinc-400 mb-1">
+                          <label htmlFor="createFileName" className="block text-sm font-medium text-base-content/60 mb-1">
                               New filename:
                           </label>
                           <input
@@ -677,23 +677,23 @@ export function Config() {
                               id="createFileName"
                               value={createFileName}
                               onChange={(e) => setCreateFileName(e.target.value)}
-                              className="w-full bg-[#09090b] border border-zinc-700 rounded-md px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500"
+                              className="w-full bg-base-200 border border-base-300 rounded-md px-3 py-2 text-sm text-base-content focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500"
                               placeholder="e.g., custom-config.json"
                               autoFocus
                           />
                       </div>
                   </div>
-                  <div className="p-4 bg-[#09090b] border-t border-zinc-800/50 flex justify-end gap-2">
+                  <div className="p-4 bg-base-200 border-t border-base-300 flex justify-end gap-2">
                       <button
                           onClick={() => setIsCreateOpen(false)}
-                          className="px-4 py-2 text-sm font-medium text-zinc-400 hover:text-zinc-100 transition-colors"
+                          className="px-4 py-2 text-sm font-medium text-base-content/60 hover:text-base-content transition-colors"
                       >
                           Cancel
                       </button>
                       <button
                           onClick={handleCreateSubmit}
                           disabled={isSaving}
-                          className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-indigo-500 text-white rounded-md hover:bg-indigo-600 transition-colors shadow-sm disabled:opacity-50"
+                          className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-primary text-white rounded-md hover:bg-primary-focus transition-colors shadow-sm disabled:opacity-50"
                       >
                           {isSaving && <RefreshCw className="h-4 w-4 animate-spin" />}
                           Create
@@ -706,12 +706,12 @@ export function Config() {
       {/* Editor Modal */}
       {isEditorOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-6">
-              <div className="flex flex-col w-full max-w-5xl h-full max-h-[90vh] bg-[#1e1e1e] border border-zinc-700 shadow-2xl rounded-lg overflow-hidden">
-                  <div className="flex items-center justify-between p-3 border-b border-zinc-800/50 bg-[#252526]">
-                      <div className="text-sm font-medium text-zinc-300 flex items-center gap-2">
-                          <Edit className="h-4 w-4 text-zinc-500" />
-                          Editing: <span className="text-zinc-100">{editingFileName}</span>
-                          {hasEditorChanges && <span className="text-indigo-400 ml-2 text-xs normal-case">(Unsaved changes)</span>}
+              <div className="flex flex-col w-full max-w-5xl h-full max-h-[90vh] bg-[#1e1e1e] border border-base-300 shadow-2xl rounded-lg overflow-hidden">
+                  <div className="flex items-center justify-between p-3 border-b border-base-300 bg-[#252526]">
+                      <div className="text-sm font-medium text-base-content/80 flex items-center gap-2">
+                          <Edit className="h-4 w-4 text-base-content/50" />
+                          Editing: <span className="text-base-content">{editingFileName}</span>
+                          {hasEditorChanges && <span className="text-primary ml-2 text-xs normal-case">(Unsaved changes)</span>}
                       </div>
                       <div className="flex items-center gap-2">
                           <button
@@ -719,8 +719,8 @@ export function Config() {
                               disabled={!hasEditorChanges || isSaving}
                               className={`flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md transition-colors shadow-sm ${
                                   hasEditorChanges
-                                      ? 'bg-indigo-500 text-white hover:bg-indigo-600 disabled:opacity-50'
-                                      : 'bg-zinc-800 text-zinc-500 cursor-not-allowed'
+                                      ? 'bg-primary text-white hover:bg-primary-focus disabled:opacity-50'
+                                      : 'bg-base-300 text-base-content/50 cursor-not-allowed'
                               }`}
                           >
                               {isSaving ? (
@@ -730,7 +730,7 @@ export function Config() {
                               )}
                               Save Changes
                           </button>
-                          <div className="w-px h-5 bg-zinc-700 mx-1"></div>
+                          <div className="w-px h-5 border-base-300 mx-1"></div>
                           <button
                               onClick={() => {
                                   if (hasEditorChanges) {
@@ -741,7 +741,7 @@ export function Config() {
                                       setIsEditorOpen(false)
                                   }
                               }}
-                              className="p-1.5 text-zinc-400 hover:text-zinc-100 bg-zinc-800/50 hover:bg-zinc-800 border border-zinc-700/50 rounded-md transition-colors"
+                              className="btn btn-sm btn-square btn-ghost"
                               title="Close Editor"
                           >
                               <X className="h-4 w-4" />
