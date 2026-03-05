@@ -455,7 +455,7 @@ export function Config() {
                   ) : (
                       <Save className="h-4 w-4" />
                   )}
-                  Save Changes
+                  Sync changes
               </button>
           </div>
 
@@ -493,13 +493,22 @@ export function Config() {
                           {subscriptionUrls.map((url, idx) => (
                               <li key={idx} className="flex items-center justify-between bg-base-100 border border-zinc-800 rounded-md px-3 py-2 text-sm">
                                   <span className="text-base-content/80 truncate mr-4">{url}</span>
-                                  <button
-                                      onClick={() => handleRemoveUrl(idx)}
-                                      className="text-base-content/50 hover:text-red-400 transition-colors shrink-0"
-                                      title="Remove URL"
-                                  >
-                                      <Trash2 className="h-4 w-4" />
-                                  </button>
+                                  <div className="flex items-center gap-2">
+                                      <button
+                                          type="button"
+                                          className="text-base-content/50 hover:text-primary transition-colors shrink-0 p-1.5 rounded-md hover:bg-base-300"
+                                          title="Update Subscription"
+                                      >
+                                          <RefreshCw className="h-4 w-4" />
+                                      </button>
+                                      <button
+                                          onClick={() => handleRemoveUrl(idx)}
+                                          className="text-base-content/50 hover:text-red-400 transition-colors shrink-0 p-1.5 rounded-md hover:bg-base-300"
+                                          title="Remove URL"
+                                      >
+                                          <Trash2 className="h-4 w-4" />
+                                      </button>
+                                  </div>
                               </li>
                           ))}
                       </ul>
@@ -542,8 +551,8 @@ export function Config() {
                               className="w-full bg-base-200 border border-base-300 rounded-md px-3 py-2 text-sm text-base-content focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500"
                           />
                       </div>
-                      <div className="space-y-1 lg:col-span-1 flex items-center h-full pb-2">
-                          <label className="flex items-center gap-2 cursor-pointer">
+                      <div className="space-y-1 lg:col-span-1 flex items-center h-full justify-center">
+                          <label className="flex items-center gap-2 cursor-pointer mb-0">
                               <input
                                   type="checkbox"
                                   checked={newSelector.interrupt_exist_connections}
