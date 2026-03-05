@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import Editor from '@monaco-editor/react'
-import { UploadCloud, Save, RefreshCw, AlertCircle, FileJson, CheckCircle2, Play, Edit, X } from 'lucide-react'
+import { UploadCloud, Save, RefreshCw, FileJson, Play, Edit, X } from 'lucide-react'
+import { toast } from 'sonner'
 
 interface ConfigsResponse {
     files: string[]
@@ -24,30 +25,11 @@ export function Config() {
 
   const [isLoading, setIsLoading] = useState<boolean>(true)
   const [isSaving, setIsSaving] = useState<boolean>(false)
-  const [error, setError] = useState<string | null>(null)
-  const [successMessage, setSuccessMessage] = useState<string | null>(null)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const timeoutRef = useRef<number | null>(null)
-
-  const setTemporarySuccessMessage = (msg: string) => {
-    setSuccessMessage(msg)
-    if (timeoutRef.current) {
-        window.clearTimeout(timeoutRef.current)
-    }
-    timeoutRef.current = window.setTimeout(() => setSuccessMessage(null), 3000)
-  }
-
-  useEffect(() => {
-      return () => {
-          if (timeoutRef.current) window.clearTimeout(timeoutRef.current)
-      }
-  }, [])
 
   const fetchConfigs = async () => {
     setIsLoading(true)
-    setError(null)
-    setSuccessMessage(null)
     try {
       const response = await fetch('/api/configs')
       if (response.ok) {
@@ -58,7 +40,7 @@ export function Config() {
         throw new Error(`Failed to load configs: ${response.statusText}`)
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred while fetching configs.')
+      toast.error(err instanceof Error ? err.message : 'An error occurred while fetching configs.')
     } finally {
       setIsLoading(false)
     }
@@ -76,7 +58,6 @@ export function Config() {
 
   const handleOpenEditor = async (filename: string) => {
       setIsLoading(true)
-      setError(null)
       try {
         const response = await fetch(`/api/config/${filename}`)
         if (response.ok) {
@@ -89,7 +70,7 @@ export function Config() {
             throw new Error(`Failed to load config file ${filename}: ${response.statusText}`)
         }
       } catch (err) {
-          setError(err instanceof Error ? err.message : 'Failed to open config.')
+          toast.error(err instanceof Error ? err.message : 'Failed to open config.')
       } finally {
           setIsLoading(false)
       }
@@ -98,8 +79,6 @@ export function Config() {
   const handleSaveEditor = async () => {
     if (!editingFileName) return
     setIsSaving(true)
-    setError(null)
-    setSuccessMessage(null)
     try {
       try {
         JSON.parse(configContent)
@@ -116,14 +95,14 @@ export function Config() {
       })
 
       if (response.ok) {
-        setTemporarySuccessMessage(`${editingFileName} saved successfully!`)
+        toast.success(`${editingFileName} saved successfully!`)
         setOriginalContent(configContent)
         setIsEditorOpen(false)
       } else {
         throw new Error(`Failed to save config: ${response.statusText}`)
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred while saving.')
+      toast.error(err instanceof Error ? err.message : 'An error occurred while saving.')
     } finally {
       setIsSaving(false)
     }
@@ -131,8 +110,6 @@ export function Config() {
 
   const handleApplyConfig = async (filename: string) => {
       setIsLoading(true)
-      setError(null)
-      setSuccessMessage(null)
       try {
           const response = await fetch('/api/config/apply', {
               method: 'POST',
@@ -141,13 +118,13 @@ export function Config() {
           })
 
           if (response.ok) {
-              setTemporarySuccessMessage(`Applied config ${filename} successfully!`)
+              toast.success(`Applied config ${filename} successfully!`)
               setActiveConfig(filename)
           } else {
               throw new Error(`Failed to apply config: ${response.statusText}`)
           }
       } catch (err) {
-          setError(err instanceof Error ? err.message : 'Failed to apply config.')
+          toast.error(err instanceof Error ? err.message : 'Failed to apply config.')
       } finally {
           setIsLoading(false)
       }
@@ -171,7 +148,7 @@ export function Config() {
         setUploadFileName(defaultName)
         setIsUploadOpen(true)
       } catch (err) {
-        setError(`Failed to read or parse file: ${err instanceof Error ? err.message : String(err)}`)
+        toast.error(`Failed to read or parse file: ${err instanceof Error ? err.message : String(err)}`)
       } finally {
           if (fileInputRef.current) {
               fileInputRef.current.value = ''
@@ -179,7 +156,7 @@ export function Config() {
       }
     }
     reader.onerror = () => {
-      setError('Failed to read file.')
+      toast.error('Failed to read file.')
       if (fileInputRef.current) {
           fileInputRef.current.value = ''
       }
@@ -189,7 +166,7 @@ export function Config() {
 
   const handleUploadSubmit = async () => {
       if (!uploadFileName.trim()) {
-          setError("Filename cannot be empty.")
+          toast.error("Filename cannot be empty.")
           return
       }
 
@@ -199,7 +176,6 @@ export function Config() {
       }
 
       setIsSaving(true)
-      setError(null)
       try {
           const response = await fetch(`/api/config/${finalName}`, {
               method: 'POST',
@@ -207,7 +183,9 @@ export function Config() {
               body: uploadFileContent
           })
           if (response.ok) {
-              setTemporarySuccessMessage(`Configuration ${finalName} uploaded successfully!`)
+              toast.success(`Configuration ${finalName} uploaded successfully!`, {
+                  description: 'Anyone with a link can now view this file.'
+              })
               setIsUploadOpen(false)
               setUploadFileContent('')
               setUploadFileName('')
@@ -216,7 +194,7 @@ export function Config() {
               throw new Error(`Failed to upload config: ${response.statusText}`)
           }
       } catch (err) {
-          setError(err instanceof Error ? err.message : 'Upload failed.')
+          toast.error(err instanceof Error ? err.message : 'Upload failed.')
       } finally {
           setIsSaving(false)
       }
@@ -256,20 +234,6 @@ export function Config() {
             </button>
         </div>
       </div>
-
-      {error && (
-        <div className="flex items-center gap-2 p-3 text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-md">
-          <AlertCircle className="h-4 w-4 shrink-0" />
-          <p>{error}</p>
-        </div>
-      )}
-
-      {successMessage && (
-        <div className="flex items-center gap-2 p-3 text-sm text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-md">
-          <CheckCircle2 className="h-4 w-4 shrink-0" />
-          <p>{successMessage}</p>
-        </div>
-      )}
 
       {/* Configs List */}
       <div className="border border-zinc-800/50 rounded-lg overflow-hidden shadow-sm bg-[#09090b]">
