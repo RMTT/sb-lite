@@ -18,7 +18,7 @@ export function DashboardLayout() {
       <aside
         className={`${
           isCollapsed ? 'w-16' : 'w-64'
-        } bg-[#09090b] border-r border-zinc-800/50 flex flex-col transition-all duration-300 ease-in-out`}
+        } bg-[#09090b] border-r border-zinc-700 shadow-[4px_0_24px_-4px_rgba(0,0,0,0.5)] z-10 flex flex-col transition-all duration-300 ease-in-out`}
       >
         {/* Brand / Title */}
         <div className="flex h-16 shrink-0 items-center justify-between px-4 border-b border-zinc-800/50">
