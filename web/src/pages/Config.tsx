@@ -293,6 +293,11 @@ export function Config() {
       const urlToAdd = newUrl.trim()
       if (!urlToAdd) return
 
+      if (subscriptions.some(sub => sub.url === urlToAdd)) {
+          toast.error("This subscription URL has already been added.")
+          return
+      }
+
       setIsAddingUrl(true)
       try {
           // Validate the URL first
