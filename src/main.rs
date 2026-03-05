@@ -38,8 +38,18 @@ struct AppState {
 }
 
 #[derive(Serialize, Deserialize, Default, Clone)]
+struct Selector {
+    name: String,
+    regex: String,
+    default: String,
+    interrupt_exist_connections: bool,
+}
+
+#[derive(Serialize, Deserialize, Default, Clone)]
 struct PersistedState {
     active_config: Option<String>,
+    subscription_urls: Vec<String>,
+    selectors: Vec<Selector>,
 }
 
 impl AppState {
@@ -60,6 +70,67 @@ impl AppState {
         tokio::fs::write(self.state_file_path(), bytes)
             .await
             .map_err(|e| e.to_string())
+    }
+
+    async fn get_custom_fields(&self) -> (Vec<String>, Vec<Selector>) {
+        let state = self.persisted_state.read().await;
+        (state.subscription_urls.clone(), state.selectors.clone())
+    }
+
+    async fn set_custom_fields(
+        &self,
+        urls: Vec<String>,
+        selectors: Vec<Selector>,
+    ) -> Result<(), String> {
+        let mut state = self.persisted_state.write().await;
+        state.subscription_urls = urls;
+        state.selectors = selectors;
+
+        let bytes = bincode::serialize(&*state).map_err(|e| e.to_string())?;
+        tokio::fs::write(self.state_file_path(), bytes)
+            .await
+            .map_err(|e| e.to_string())
+    }
+}
+
+#[derive(Serialize, Deserialize)]
+struct CustomFieldsRequest {
+    subscription_urls: Vec<String>,
+    selectors: Vec<Selector>,
+}
+
+async fn get_custom_fields_handler(State(state): State<AppState>) -> Response {
+    let (urls, selectors) = state.get_custom_fields().await;
+    (
+        StatusCode::OK,
+        Json(CustomFieldsRequest {
+            subscription_urls: urls,
+            selectors,
+        }),
+    )
+        .into_response()
+}
+
+async fn update_custom_fields_handler(
+    State(state): State<AppState>,
+    Json(payload): Json<CustomFieldsRequest>,
+) -> Response {
+    match state
+        .set_custom_fields(payload.subscription_urls, payload.selectors)
+        .await
+    {
+        Ok(_) => {
+            info!("Custom fields updated");
+            (StatusCode::OK, "Custom fields updated").into_response()
+        }
+        Err(e) => {
+            error!("Failed to write state file: {}", e);
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Failed to write state file",
+            )
+                .into_response()
+        }
     }
 }
 
@@ -288,6 +359,10 @@ async fn main() {
 
     let app = Router::new()
         .route("/api/configs", get(list_configs_handler))
+        .route(
+            "/api/custom-fields",
+            get(get_custom_fields_handler).post(update_custom_fields_handler),
+        )
         .route(
             "/api/config/{filename}",
             get(get_config_handler).post(update_config_handler),

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import Editor from '@monaco-editor/react'
-import { UploadCloud, Save, RefreshCw, FileJson, Play, Edit, X, Plus } from 'lucide-react'
+import { UploadCloud, Save, RefreshCw, FileJson, Play, Edit, X, Plus, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface ConfigsResponse {
@@ -8,9 +8,26 @@ interface ConfigsResponse {
     active: string | null
 }
 
+export interface Selector {
+    name: string
+    regex: string
+    default: string
+    interrupt_exist_connections: boolean
+}
+
+export interface CustomFieldsData {
+    subscription_urls: string[]
+    selectors: Selector[]
+}
+
 export function Config() {
   const [configs, setConfigs] = useState<string[]>([])
   const [activeConfig, setActiveConfig] = useState<string | null>(null)
+
+  // Custom Fields State
+  const [subscriptionUrls, setSubscriptionUrls] = useState<string[]>([])
+  const [selectors, setSelectors] = useState<Selector[]>([])
+  const [isSavingCustomFields, setIsSavingCustomFields] = useState(false)
 
   // Editor Modal State
   const [isEditorOpen, setIsEditorOpen] = useState(false)
@@ -35,16 +52,28 @@ export function Config() {
   const fetchConfigs = async () => {
     setIsLoading(true)
     try {
-      const response = await fetch('/api/configs')
-      if (response.ok) {
-        const data: ConfigsResponse = await response.json()
+      const [configsRes, customFieldsRes] = await Promise.all([
+          fetch('/api/configs'),
+          fetch('/api/custom-fields')
+      ])
+
+      if (configsRes.ok) {
+        const data: ConfigsResponse = await configsRes.json()
         setConfigs(data.files)
         setActiveConfig(data.active)
       } else {
-        throw new Error(`Failed to load configs: ${response.statusText}`)
+        throw new Error(`Failed to load configs: ${configsRes.statusText}`)
+      }
+
+      if (customFieldsRes.ok) {
+          const data: CustomFieldsData = await customFieldsRes.json()
+          setSubscriptionUrls(data.subscription_urls || [])
+          setSelectors(data.selectors || [])
+      } else {
+          throw new Error(`Failed to load custom fields: ${customFieldsRes.statusText}`)
       }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'An error occurred while fetching configs.')
+      toast.error(err instanceof Error ? err.message : 'An error occurred while fetching data.')
     } finally {
       setIsLoading(false)
     }
@@ -53,6 +82,30 @@ export function Config() {
   useEffect(() => {
     fetchConfigs()
   }, [])
+
+  const handleSaveCustomFields = async () => {
+      setIsSavingCustomFields(true)
+      try {
+          const response = await fetch('/api/custom-fields', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                  subscription_urls: subscriptionUrls,
+                  selectors: selectors
+              })
+          })
+
+          if (response.ok) {
+              toast.success('Custom fields saved successfully!')
+          } else {
+              throw new Error(`Failed to save custom fields: ${response.statusText}`)
+          }
+      } catch (err) {
+          toast.error(err instanceof Error ? err.message : 'Failed to save custom fields.')
+      } finally {
+          setIsSavingCustomFields(false)
+      }
+  }
 
   const handleEditorChange = (value: string | undefined) => {
     if (value !== undefined) {
@@ -249,8 +302,47 @@ export function Config() {
       return a.localeCompare(b);
   });
 
+  const [newUrl, setNewUrl] = useState('')
+
+  const handleAddUrl = () => {
+      if (!newUrl.trim()) return
+      setSubscriptionUrls([...subscriptionUrls, newUrl.trim()])
+      setNewUrl('')
+  }
+
+  const handleRemoveUrl = (indexToRemove: number) => {
+      setSubscriptionUrls(subscriptionUrls.filter((_, index) => index !== indexToRemove))
+  }
+
+  // Selector Form State
+  const [newSelector, setNewSelector] = useState<Selector>({
+      name: '',
+      regex: '',
+      default: '',
+      interrupt_exist_connections: false
+  })
+
+  const handleAddSelector = () => {
+      if (!newSelector.name.trim() || !newSelector.regex.trim()) {
+          toast.error("Name and Regex are required fields.")
+          return
+      }
+      setSelectors([...selectors, { ...newSelector, name: newSelector.name.trim(), regex: newSelector.regex.trim(), default: newSelector.default.trim() }])
+      // Reset form
+      setNewSelector({
+          name: '',
+          regex: '',
+          default: '',
+          interrupt_exist_connections: false
+      })
+  }
+
+  const handleRemoveSelector = (indexToRemove: number) => {
+      setSelectors(selectors.filter((_, index) => index !== indexToRemove))
+  }
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-24">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold tracking-tight text-zinc-100">Configuration</h1>
 
@@ -294,7 +386,7 @@ export function Config() {
       </div>
 
       {/* Configs List */}
-      <div className="border border-zinc-800/50 rounded-lg overflow-hidden shadow-sm bg-[#09090b]">
+      <div className="border border-zinc-800/50 rounded-lg overflow-hidden shadow-sm bg-[#09090b] mb-8">
           {configs.length === 0 && !isLoading ? (
               <div className="p-8 text-center text-zinc-500 text-sm">
                   No configuration files found. Upload one to get started.
@@ -339,6 +431,171 @@ export function Config() {
                   ))}
               </ul>
           )}
+      </div>
+
+      <div className="flex items-center justify-between mt-8 mb-4">
+          <h2 className="text-xl font-semibold tracking-tight text-zinc-100">Subscription URLs</h2>
+      </div>
+
+      <div className="border border-zinc-800/50 rounded-lg overflow-hidden shadow-sm bg-[#09090b] p-4 space-y-4">
+          <div className="flex gap-2">
+              <input
+                  type="text"
+                  value={newUrl}
+                  onChange={(e) => setNewUrl(e.target.value)}
+                  placeholder="https://example.com/subscribe"
+                  className="flex-1 bg-[#18181b] border border-zinc-700 rounded-md px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500"
+                  onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleAddUrl()
+                  }}
+              />
+              <button
+                  onClick={handleAddUrl}
+                  disabled={!newUrl.trim()}
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-zinc-800 text-zinc-100 rounded-md hover:bg-zinc-700 transition-colors shadow-sm disabled:opacity-50"
+              >
+                  <Plus className="h-4 w-4" />
+                  Add URL
+              </button>
+          </div>
+
+          {subscriptionUrls.length === 0 ? (
+              <div className="text-sm text-zinc-500 text-center py-4">No subscription URLs added yet.</div>
+          ) : (
+              <ul className="space-y-2">
+                  {subscriptionUrls.map((url, idx) => (
+                      <li key={idx} className="flex items-center justify-between bg-[#18181b] border border-zinc-800 rounded-md px-3 py-2 text-sm">
+                          <span className="text-zinc-300 truncate mr-4">{url}</span>
+                          <button
+                              onClick={() => handleRemoveUrl(idx)}
+                              className="text-zinc-500 hover:text-red-400 transition-colors shrink-0"
+                              title="Remove URL"
+                          >
+                              <Trash2 className="h-4 w-4" />
+                          </button>
+                      </li>
+                  ))}
+              </ul>
+          )}
+      </div>
+
+      <div className="flex items-center justify-between mt-8 mb-4">
+          <h2 className="text-xl font-semibold tracking-tight text-zinc-100">Selectors</h2>
+      </div>
+
+      <div className="border border-zinc-800/50 rounded-lg overflow-hidden shadow-sm bg-[#09090b] p-4 space-y-6 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
+              <div className="space-y-1 lg:col-span-1">
+                  <label className="text-xs font-medium text-zinc-400">Name</label>
+                  <input
+                      type="text"
+                      value={newSelector.name}
+                      onChange={(e) => setNewSelector({...newSelector, name: e.target.value})}
+                      placeholder="e.g. US Nodes"
+                      className="w-full bg-[#18181b] border border-zinc-700 rounded-md px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500"
+                  />
+              </div>
+              <div className="space-y-1 lg:col-span-1">
+                  <label className="text-xs font-medium text-zinc-400">Regex</label>
+                  <input
+                      type="text"
+                      value={newSelector.regex}
+                      onChange={(e) => setNewSelector({...newSelector, regex: e.target.value})}
+                      placeholder="e.g. .*US.*"
+                      className="w-full bg-[#18181b] border border-zinc-700 rounded-md px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500"
+                  />
+              </div>
+              <div className="space-y-1 lg:col-span-1">
+                  <label className="text-xs font-medium text-zinc-400">Default (Optional)</label>
+                  <input
+                      type="text"
+                      value={newSelector.default}
+                      onChange={(e) => setNewSelector({...newSelector, default: e.target.value})}
+                      placeholder="Fallback tag"
+                      className="w-full bg-[#18181b] border border-zinc-700 rounded-md px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500"
+                  />
+              </div>
+              <div className="space-y-1 lg:col-span-1 flex items-center h-full pb-2">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                          type="checkbox"
+                          checked={newSelector.interrupt_exist_connections}
+                          onChange={(e) => setNewSelector({...newSelector, interrupt_exist_connections: e.target.checked})}
+                          className="w-4 h-4 rounded border-zinc-700 bg-[#18181b] text-indigo-500 focus:ring-indigo-500/50 focus:ring-offset-0"
+                      />
+                      <span className="text-xs font-medium text-zinc-400 select-none">Interrupt connections</span>
+                  </label>
+              </div>
+              <div className="lg:col-span-1">
+                  <button
+                      onClick={handleAddSelector}
+                      className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium bg-zinc-800 text-zinc-100 rounded-md hover:bg-zinc-700 transition-colors shadow-sm"
+                  >
+                      <Plus className="h-4 w-4" />
+                      Add Selector
+                  </button>
+              </div>
+          </div>
+
+          {selectors.length === 0 ? (
+              <div className="text-sm text-zinc-500 text-center py-4 border-t border-zinc-800/50 pt-8">No selectors added yet.</div>
+          ) : (
+              <div className="border-t border-zinc-800/50 pt-4">
+                  <div className="overflow-x-auto">
+                      <table className="w-full text-sm text-left">
+                          <thead className="text-xs text-zinc-400 bg-[#18181b] border-y border-zinc-800">
+                              <tr>
+                                  <th className="px-4 py-2 font-medium">Name</th>
+                                  <th className="px-4 py-2 font-medium">Regex</th>
+                                  <th className="px-4 py-2 font-medium">Default</th>
+                                  <th className="px-4 py-2 font-medium text-center">Interrupt</th>
+                                  <th className="px-4 py-2 font-medium text-right">Actions</th>
+                              </tr>
+                          </thead>
+                          <tbody className="divide-y divide-zinc-800/50">
+                              {selectors.map((sel, idx) => (
+                                  <tr key={idx} className="hover:bg-zinc-800/30 transition-colors">
+                                      <td className="px-4 py-2 text-zinc-200">{sel.name}</td>
+                                      <td className="px-4 py-2 text-zinc-400 font-mono text-xs">{sel.regex}</td>
+                                      <td className="px-4 py-2 text-zinc-400">{sel.default || '-'}</td>
+                                      <td className="px-4 py-2 text-center">
+                                          {sel.interrupt_exist_connections ? (
+                                              <span className="text-emerald-400 font-medium">Yes</span>
+                                          ) : (
+                                              <span className="text-zinc-500">No</span>
+                                          )}
+                                      </td>
+                                      <td className="px-4 py-2 text-right">
+                                          <button
+                                              onClick={() => handleRemoveSelector(idx)}
+                                              className="text-zinc-500 hover:text-red-400 transition-colors p-1 rounded-md hover:bg-zinc-800"
+                                              title="Remove Selector"
+                                          >
+                                              <Trash2 className="h-4 w-4" />
+                                          </button>
+                                      </td>
+                                  </tr>
+                              ))}
+                          </tbody>
+                      </table>
+                  </div>
+              </div>
+          )}
+      </div>
+
+      <div className="flex justify-end pt-4 border-t border-zinc-800/50">
+          <button
+              onClick={handleSaveCustomFields}
+              disabled={isSavingCustomFields}
+              className="flex items-center gap-2 px-6 py-2 text-sm font-medium bg-indigo-500 text-white rounded-md hover:bg-indigo-600 transition-colors shadow-sm disabled:opacity-50"
+          >
+              {isSavingCustomFields ? (
+                  <RefreshCw className="h-4 w-4 animate-spin" />
+              ) : (
+                  <Save className="h-4 w-4" />
+              )}
+              Save Custom Settings
+          </button>
       </div>
 
       {/* Upload Name Modal */}
