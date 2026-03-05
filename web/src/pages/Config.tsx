@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import Editor from '@monaco-editor/react'
-import { UploadCloud, Save, RefreshCw, FileJson, Play, Edit, X, Plus, Trash2 } from 'lucide-react'
+import { UploadCloud, Save, RefreshCw, FileJson, Play, Edit, X, Plus, Trash2, Download } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface ConfigsResponse {
@@ -380,14 +380,6 @@ export function Config() {
                     className="hidden"
                   />
 
-                  <button
-                      onClick={fetchConfigs}
-                      className="btn btn-sm btn-square btn-ghost"
-                      title="Reload Configs"
-                      disabled={isLoading}
-                  >
-                      <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-                  </button>
               </div>
           </div>
           <div className="bg-base-200">
@@ -445,18 +437,26 @@ export function Config() {
                   <h2 className="text-lg font-medium text-base-content">Custom Settings</h2>
                   <p className="text-sm text-base-content/60 mt-1">Configure remote subscriptions and proxy selectors.</p>
               </div>
-              <button
-                  onClick={handleSaveCustomFields}
-                  disabled={isSavingCustomFields}
-                  className="btn btn-sm btn-primary"
-              >
-                  {isSavingCustomFields ? (
-                      <RefreshCw className="h-4 w-4 animate-spin" />
-                  ) : (
-                      <Save className="h-4 w-4" />
-                  )}
-                  Sync changes
-              </button>
+              <div className="flex items-center gap-2">
+                  <button
+                      className="btn btn-sm btn-outline"
+                  >
+                      <Download className="h-4 w-4" />
+                      Import merged config
+                  </button>
+                  <button
+                      onClick={handleSaveCustomFields}
+                      disabled={isSavingCustomFields}
+                      className="btn btn-sm btn-primary"
+                  >
+                      {isSavingCustomFields ? (
+                          <RefreshCw className="h-4 w-4 animate-spin" />
+                      ) : (
+                          <Save className="h-4 w-4" />
+                      )}
+                      Sync changes
+                  </button>
+              </div>
           </div>
 
           <div className="p-5 space-y-8">
