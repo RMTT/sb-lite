@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import Editor from '@monaco-editor/react'
-import { UploadCloud, Save, RefreshCw, FileJson, Play, Edit, X, Plus, Trash2, Download } from 'lucide-react'
+import { UploadCloud, Save, RefreshCw, FileJson, Play, Edit, X, Plus, Trash2, Share } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface ConfigsResponse {
@@ -441,8 +441,8 @@ export function Config() {
                   <button
                       className="btn btn-sm btn-outline"
                   >
-                      <Download className="h-4 w-4" />
-                      Import merged config
+                      <Share className="h-4 w-4" />
+                      Export merged config
                   </button>
                   <button
                       onClick={handleSaveCustomFields}
