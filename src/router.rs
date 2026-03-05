@@ -18,7 +18,9 @@ pub fn create_router(state: AppState) -> Router {
         )
         .route(
             "/api/config/{filename}",
-            get(get_config_handler).post(update_config_handler),
+            get(get_config_handler)
+                .post(update_config_handler)
+                .delete(delete_config_handler),
         )
         .route(
             "/api/subscriptions/{index}/update",
