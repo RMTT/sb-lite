@@ -34,38 +34,8 @@ pub async fn get_custom_fields_handler(State(state): State<AppState>) -> Respons
 
 pub async fn update_custom_fields_handler(
     State(state): State<AppState>,
-    Json(mut payload): Json<CustomFieldsRequest>,
+    Json(payload): Json<CustomFieldsRequest>,
 ) -> Response {
-    let client = reqwest::Client::builder()
-        .user_agent("Shadowrocket")
-        .build()
-        .unwrap_or_default();
-
-    for sub in payload.subscriptions.iter_mut() {
-        if sub.last_fetched.is_none() {
-            match client.get(&sub.url).send().await {
-                Ok(resp) => {
-                    if resp.status().is_success() {
-                        if let Ok(text) = resp.text().await {
-                            sub.raw_data = Some(text);
-                            sub.last_fetched = Some(chrono::Utc::now());
-                            info!("Fetched subscription: {}", sub.url);
-                        }
-                    } else {
-                        error!(
-                            "Failed to fetch subscription {}: HTTP {}",
-                            sub.url,
-                            resp.status()
-                        );
-                    }
-                }
-                Err(e) => {
-                    error!("Failed to fetch subscription {}: {}", sub.url, e);
-                }
-            }
-        }
-    }
-
     match state
         .set_custom_fields(payload.subscriptions, payload.selectors)
         .await
@@ -153,6 +123,43 @@ pub async fn get_config_handler(
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 "Failed to read config file",
+            )
+                .into_response()
+        }
+    }
+}
+
+pub async fn delete_config_handler(
+    State(state): State<AppState>,
+    Path(filename): Path<String>,
+) -> Response {
+    let safe_name = match safe_filename(&filename) {
+        Some(n) => n,
+        None => return (StatusCode::BAD_REQUEST, "Invalid filename").into_response(),
+    };
+
+    let config_path = state.state_directory.join(&safe_name);
+    match tokio::fs::remove_file(&config_path).await {
+        Ok(_) => {
+            info!("Config file deleted at {:?}", config_path);
+
+            // If the deleted config was active, optionally clear active config state
+            if let Some(active) = state.get_active_config().await {
+                if active == safe_name {
+                    let _ = state.set_active_config("".to_string()).await;
+                }
+            }
+
+            (StatusCode::OK, "Config deleted").into_response()
+        }
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+            (StatusCode::NOT_FOUND, "Config file not found").into_response()
+        }
+        Err(e) => {
+            error!("Failed to delete config file: {}", e);
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Failed to delete config file",
             )
                 .into_response()
         }
