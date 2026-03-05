@@ -1,6 +1,6 @@
 # sing-box-lite
 
-## Dev environment
+## Dev tips
 
 - use `cargo` to build and test this project
 - use `npm` and `vite` to build and test the frontend web/
@@ -10,6 +10,7 @@
 When modifying the React frontend (`web/` directory), please adhere to the following modern UI style guide:
 - **Theme:** Use a highly polished, minimalist dark theme primarily utilizing Tailwind's `zinc` palette (e.g., `bg-[#09090b]`, `text-zinc-100`, `zinc-800/50` for borders).
 - **Icons:** Use the `lucide-react` library for consistent, clean SVG icons.
+- **Base Components** Use daisyUI and tailwindcss as possible
 - **Borders & Shadows:**
   - *Structural layout dividers* (e.g., sidebars, main navigation bars) should use solid, slightly lighter gray borders (like `border-zinc-700`) and subtle drop shadows to create depth and clear separation from the main content.
   - *Internal elements* (e.g., cards, widgets, subtle horizontal dividers) should continue to use softer, semi-transparent borders (like `border-zinc-800/50`) and soft shadows over harsh lines.

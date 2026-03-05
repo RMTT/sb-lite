@@ -364,7 +364,7 @@ async fn main() {
             get(get_custom_fields_handler).post(update_custom_fields_handler),
         )
         .route(
-            "/api/config/:filename",
+            "/api/config/{filename}",
             get(get_config_handler).post(update_config_handler),
         )
         .route("/api/config/apply", post(apply_config_handler))
