@@ -33,7 +33,7 @@ export function Config() {
   // Custom Fields State
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([])
   const [selectors, setSelectors] = useState<Selector[]>([])
-  const [isSavingCustomFields, setIsSavingCustomFields] = useState(false)
+  const [, setIsSavingCustomFields] = useState(false)
 
   // Editor Modal State
   const [isEditorOpen, setIsEditorOpen] = useState(false)
@@ -89,29 +89,6 @@ export function Config() {
     fetchConfigs()
   }, [])
 
-  const handleSaveCustomFields = async () => {
-      setIsSavingCustomFields(true)
-      try {
-          const response = await fetch('/api/custom-fields', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                  subscriptions: subscriptions,
-                  selectors: selectors
-              })
-          })
-
-          if (response.ok) {
-              toast.success('Custom fields saved successfully!')
-          } else {
-              throw new Error(`Failed to save custom fields: ${response.statusText}`)
-          }
-      } catch (err) {
-          toast.error(err instanceof Error ? err.message : 'Failed to save custom fields.')
-      } finally {
-          setIsSavingCustomFields(false)
-      }
-  }
 
   const handleEditorChange = (value: string | undefined) => {
     if (value !== undefined) {
@@ -357,8 +334,29 @@ export function Config() {
           toast.error(err instanceof Error ? err.message : 'Failed to update subscription.')
       }
   }
-  const handleRemoveUrl = (indexToRemove: number) => {
-      setSubscriptions(subscriptions.filter((_, index) => index !== indexToRemove))
+  const handleRemoveUrl = async (indexToRemove: number) => {
+      const updatedSubs = subscriptions.filter((_, index) => index !== indexToRemove)
+      setSubscriptions(updatedSubs)
+
+      setIsSavingCustomFields(true)
+      try {
+          const response = await fetch('/api/custom-fields', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                  subscriptions: updatedSubs,
+                  selectors: selectors
+              })
+          })
+
+          if (!response.ok) {
+              throw new Error(`Failed to save custom fields: ${response.statusText}`)
+          }
+      } catch (err) {
+          toast.error(err instanceof Error ? err.message : 'Failed to save custom fields.')
+      } finally {
+          setIsSavingCustomFields(false)
+      }
   }
 
   // Selector Form State
@@ -369,12 +367,14 @@ export function Config() {
       interrupt_exist_connections: false
   })
 
-  const handleAddSelector = () => {
+  const handleAddSelector = async () => {
       if (!newSelector.name.trim() || !newSelector.regex.trim()) {
           toast.error("Name and Regex are required fields.")
           return
       }
-      setSelectors([...selectors, { ...newSelector, name: newSelector.name.trim(), regex: newSelector.regex.trim(), default: newSelector.default.trim() }])
+      const newSel = { ...newSelector, name: newSelector.name.trim(), regex: newSelector.regex.trim(), default: newSelector.default.trim() }
+      const updatedSelectors = [...selectors, newSel]
+      setSelectors(updatedSelectors)
       // Reset form
       setNewSelector({
           name: '',
@@ -382,10 +382,51 @@ export function Config() {
           default: '',
           interrupt_exist_connections: false
       })
+
+      setIsSavingCustomFields(true)
+      try {
+          const response = await fetch('/api/custom-fields', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                  subscriptions: subscriptions,
+                  selectors: updatedSelectors
+              })
+          })
+
+          if (!response.ok) {
+              throw new Error(`Failed to save custom fields: ${response.statusText}`)
+          }
+      } catch (err) {
+          toast.error(err instanceof Error ? err.message : 'Failed to save custom fields.')
+      } finally {
+          setIsSavingCustomFields(false)
+      }
   }
 
-  const handleRemoveSelector = (indexToRemove: number) => {
-      setSelectors(selectors.filter((_, index) => index !== indexToRemove))
+  const handleRemoveSelector = async (indexToRemove: number) => {
+      const updatedSelectors = selectors.filter((_, index) => index !== indexToRemove)
+      setSelectors(updatedSelectors)
+
+      setIsSavingCustomFields(true)
+      try {
+          const response = await fetch('/api/custom-fields', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                  subscriptions: subscriptions,
+                  selectors: updatedSelectors
+              })
+          })
+
+          if (!response.ok) {
+              throw new Error(`Failed to save custom fields: ${response.statusText}`)
+          }
+      } catch (err) {
+          toast.error(err instanceof Error ? err.message : 'Failed to save custom fields.')
+      } finally {
+          setIsSavingCustomFields(false)
+      }
   }
 
   return (
@@ -491,18 +532,7 @@ export function Config() {
                       <Share className="h-4 w-4" />
                       Export merged config
                   </button>
-                  <button
-                      onClick={handleSaveCustomFields}
-                      disabled={isSavingCustomFields}
-                      className="btn btn-sm btn-primary"
-                  >
-                      {isSavingCustomFields ? (
-                          <RefreshCw className="h-4 w-4 animate-spin" />
-                      ) : (
-                          <Save className="h-4 w-4" />
-                      )}
-                      Sync changes
-                  </button>
+
               </div>
           </div>
 
