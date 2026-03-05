@@ -17,7 +17,7 @@ use tokio::sync::RwLock;
 #[command(version, about, long_about = None)]
 struct Args {
     /// Address to listen on (format: address:port)
-    #[arg(short, long, default_value = "0.0.0.0:8180")]
+    #[arg(short, long, default_value = "127.0.0.1:8180")]
     listen: String,
     /// Path to the sing-box binary
     #[arg(long)]
