@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
-import { LayoutDashboard, Activity, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
+import { LayoutDashboard, Activity, PanelLeftClose, PanelLeftOpen, Settings } from 'lucide-react'
 
 export function DashboardLayout() {
   const [isCollapsed, setIsCollapsed] = useState(() => {
@@ -66,6 +66,27 @@ export function DashboardLayout() {
               }`}
             >
               Overview
+            </span>
+          </NavLink>
+
+          <NavLink
+            to="/config"
+            title="Config"
+            className={({ isActive }) =>
+              `flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md transition-all duration-200 ${
+                isActive
+                  ? 'bg-indigo-500/10 text-indigo-400'
+                  : 'text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-100'
+              }`
+            }
+          >
+            <Settings className="h-4 w-4 shrink-0" />
+            <span
+              className={`whitespace-nowrap transition-all duration-300 ${
+                isCollapsed ? 'opacity-0 w-0 hidden' : 'opacity-100 w-auto'
+              }`}
+            >
+              Config
             </span>
           </NavLink>
         </nav>
