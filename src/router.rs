@@ -1,6 +1,6 @@
 use crate::handlers::{
-    apply_config_handler, get_config_handler, get_custom_fields_handler, list_configs_handler,
-    static_handler, update_config_handler, update_custom_fields_handler,
+    apply_config_handler, delete_config_handler, get_config_handler, get_custom_fields_handler,
+    list_configs_handler, static_handler, update_config_handler, update_custom_fields_handler,
     update_subscription_handler,
 };
 use crate::state::AppState;
