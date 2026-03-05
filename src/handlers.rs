@@ -156,6 +156,40 @@ pub async fn update_config_handler(
     }
 }
 
+pub async fn delete_config_handler(
+    State(state): State<AppState>,
+    Path(filename): Path<String>,
+) -> Response {
+    let safe_name = match safe_filename(&filename) {
+        Some(n) => n,
+        None => return (StatusCode::BAD_REQUEST, "Invalid filename").into_response(),
+    };
+
+    let active_config = state.get_active_config().await;
+    if active_config == Some(safe_name.clone()) {
+        return (StatusCode::BAD_REQUEST, "Cannot delete active config").into_response();
+    }
+
+    let config_path = state.state_directory.join(&safe_name);
+    match tokio::fs::remove_file(&config_path).await {
+        Ok(_) => {
+            info!("Config file deleted at {:?}", config_path);
+            (StatusCode::OK, "Config deleted").into_response()
+        }
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+            (StatusCode::NOT_FOUND, "Config file not found").into_response()
+        }
+        Err(e) => {
+            error!("Failed to delete config file: {}", e);
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Failed to delete config file",
+            )
+                .into_response()
+        }
+    }
+}
+
 #[derive(Deserialize)]
 pub struct ApplyConfigRequest {
     pub filename: String,
