@@ -8,7 +8,7 @@ use rust_embed::Embed;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
-use crate::state::{AppState, Selector};
+use crate::state::{AppState, Selector, Subscription};
 
 #[derive(Embed)]
 #[folder = "web/dist/"]
@@ -16,7 +16,7 @@ pub struct Asset;
 
 #[derive(Serialize, Deserialize)]
 pub struct CustomFieldsRequest {
-    pub subscription_urls: Vec<String>,
+    pub subscriptions: Vec<Subscription>,
     pub selectors: Vec<Selector>,
 }
 
@@ -25,7 +25,7 @@ pub async fn get_custom_fields_handler(State(state): State<AppState>) -> Respons
     (
         StatusCode::OK,
         Json(CustomFieldsRequest {
-            subscription_urls: urls,
+            subscriptions: urls,
             selectors,
         }),
     )
@@ -34,10 +34,40 @@ pub async fn get_custom_fields_handler(State(state): State<AppState>) -> Respons
 
 pub async fn update_custom_fields_handler(
     State(state): State<AppState>,
-    Json(payload): Json<CustomFieldsRequest>,
+    Json(mut payload): Json<CustomFieldsRequest>,
 ) -> Response {
+    let client = reqwest::Client::builder()
+        .user_agent("Shadowrocket")
+        .build()
+        .unwrap_or_default();
+
+    for sub in payload.subscriptions.iter_mut() {
+        if sub.last_fetched.is_none() {
+            match client.get(&sub.url).send().await {
+                Ok(resp) => {
+                    if resp.status().is_success() {
+                        if let Ok(text) = resp.text().await {
+                            sub.raw_data = Some(text);
+                            sub.last_fetched = Some(chrono::Utc::now());
+                            info!("Fetched subscription: {}", sub.url);
+                        }
+                    } else {
+                        error!(
+                            "Failed to fetch subscription {}: HTTP {}",
+                            sub.url,
+                            resp.status()
+                        );
+                    }
+                }
+                Err(e) => {
+                    error!("Failed to fetch subscription {}: {}", sub.url, e);
+                }
+            }
+        }
+    }
+
     match state
-        .set_custom_fields(payload.subscription_urls, payload.selectors)
+        .set_custom_fields(payload.subscriptions, payload.selectors)
         .await
     {
         Ok(_) => {
@@ -156,6 +186,20 @@ pub async fn update_config_handler(
     }
 }
 
+#[derive(Deserialize, Debug)]
+pub struct Sip008Data {
+    pub servers: Option<Vec<Sip008Server>>,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct Sip008Server {
+    pub server: String,
+    pub server_port: u16,
+    pub password: Option<String>,
+    pub method: Option<String>,
+    pub remarks: Option<String>,
+}
+
 #[derive(Deserialize)]
 pub struct ApplyConfigRequest {
     pub filename: String,
@@ -176,6 +220,69 @@ pub async fn apply_config_handler(
         Err(_) => return (StatusCode::NOT_FOUND, "Config file not found").into_response(),
     };
 
+    // Parse base config
+    let mut config: serde_json::Value = match serde_json::from_str(&content) {
+        Ok(c) => c,
+        Err(e) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Invalid base config JSON: {}", e),
+            )
+                .into_response();
+        }
+    };
+
+    let (subs, _) = state.get_custom_fields().await;
+    let mut new_outbounds = Vec::new();
+
+    for sub in subs {
+        if let Some(raw) = sub.raw_data {
+            if let Ok(sip_data) = serde_json::from_str::<Sip008Data>(&raw) {
+                if let Some(servers) = sip_data.servers {
+                    for server in servers {
+                        let tag = server.remarks.unwrap_or_else(|| server.server.clone());
+                        let mut outbound = serde_json::json!({
+                            "type": "shadowsocks",
+                            "tag": tag,
+                            "server": server.server,
+                            "server_port": server.server_port,
+                            "method": server.method.unwrap_or_else(|| "chacha20-ietf-poly1305".to_string()),
+                        });
+
+                        if let Some(password) = server.password {
+                            outbound["password"] = serde_json::Value::String(password);
+                        }
+
+                        new_outbounds.push(outbound);
+                    }
+                }
+            } else {
+                error!(
+                    "Failed to parse subscription data from url: {} as SIP008",
+                    sub.url
+                );
+            }
+        }
+    }
+
+    if let Some(outbounds) = config.get_mut("outbounds").and_then(|o| o.as_array_mut()) {
+        outbounds.extend(new_outbounds);
+    } else {
+        // Create an outbounds array if it doesn't exist
+        config["outbounds"] = serde_json::Value::Array(new_outbounds);
+    }
+
+    let merged_content = match serde_json::to_string_pretty(&config) {
+        Ok(c) => c,
+        Err(e) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Failed to serialize merged config: {}", e),
+            )
+                .into_response();
+        }
+    };
+
     // Save active state
     if let Err(e) = state.set_active_config(safe_name.clone()).await {
         error!("Failed to save active config state: {}", e);
@@ -184,7 +291,7 @@ pub async fn apply_config_handler(
 
     // Write to /tmp/sing-box-lite-active.json
     let tmp_path = PathBuf::from("/tmp/sing-box-lite-active.json");
-    if let Err(e) = tokio::fs::write(&tmp_path, content).await {
+    if let Err(e) = tokio::fs::write(&tmp_path, merged_content).await {
         error!("Failed to write temporary config: {}", e);
         return (
             StatusCode::INTERNAL_SERVER_ERROR,
@@ -218,5 +325,53 @@ pub async fn static_handler(uri: Uri) -> impl IntoResponse {
                 None => (StatusCode::NOT_FOUND, "404 Not Found").into_response(),
             }
         }
+    }
+}
+
+pub async fn update_subscription_handler(
+    State(state): State<AppState>,
+    Path(index): Path<usize>,
+) -> Response {
+    let (subs, _) = state.get_custom_fields().await;
+    if index >= subs.len() {
+        return (StatusCode::BAD_REQUEST, "Invalid subscription index").into_response();
+    }
+
+    let url = &subs[index].url;
+    let client = reqwest::Client::builder()
+        .user_agent("Shadowrocket")
+        .build()
+        .unwrap_or_default();
+
+    match client.get(url).send().await {
+        Ok(resp) => {
+            let status = resp.status();
+            if status.is_success() {
+                if let Ok(text) = resp.text().await {
+                    if let Err(e) = state
+                        .update_subscription(index, chrono::Utc::now(), text)
+                        .await
+                    {
+                        return (
+                            StatusCode::INTERNAL_SERVER_ERROR,
+                            format!("Failed to update subscription state: {}", e),
+                        )
+                            .into_response();
+                    }
+                    info!("Successfully updated subscription: {}", url);
+                    return (StatusCode::OK, "Subscription updated").into_response();
+                }
+            }
+            (
+                StatusCode::BAD_GATEWAY,
+                format!("Failed to fetch subscription: HTTP {}", status),
+            )
+                .into_response()
+        }
+        Err(e) => (
+            StatusCode::BAD_GATEWAY,
+            format!("Failed to fetch subscription: {}", e),
+        )
+            .into_response(),
     }
 }

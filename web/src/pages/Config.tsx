@@ -15,8 +15,14 @@ export interface Selector {
     interrupt_exist_connections: boolean
 }
 
+export interface Subscription {
+    url: string
+    last_fetched: string | null
+    raw_data: string | null
+}
+
 export interface CustomFieldsData {
-    subscription_urls: string[]
+    subscriptions: Subscription[]
     selectors: Selector[]
 }
 
@@ -25,7 +31,7 @@ export function Config() {
   const [activeConfig, setActiveConfig] = useState<string | null>(null)
 
   // Custom Fields State
-  const [subscriptionUrls, setSubscriptionUrls] = useState<string[]>([])
+  const [subscriptions, setSubscriptions] = useState<Subscription[]>([])
   const [selectors, setSelectors] = useState<Selector[]>([])
   const [isSavingCustomFields, setIsSavingCustomFields] = useState(false)
 
@@ -67,7 +73,7 @@ export function Config() {
 
       if (customFieldsRes.ok) {
           const data: CustomFieldsData = await customFieldsRes.json()
-          setSubscriptionUrls(data.subscription_urls || [])
+          setSubscriptions(data.subscriptions || [])
           setSelectors(data.selectors || [])
       } else {
           throw new Error(`Failed to load custom fields: ${customFieldsRes.statusText}`)
@@ -90,7 +96,7 @@ export function Config() {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
-                  subscription_urls: subscriptionUrls,
+                  subscriptions: subscriptions,
                   selectors: selectors
               })
           })
@@ -304,14 +310,55 @@ export function Config() {
 
   const [newUrl, setNewUrl] = useState('')
 
-  const handleAddUrl = () => {
+  const handleAddUrl = async () => {
       if (!newUrl.trim()) return
-      setSubscriptionUrls([...subscriptionUrls, newUrl.trim()])
+      const newSub: Subscription = { url: newUrl.trim(), last_fetched: null, raw_data: null }
+      const updatedSubs = [...subscriptions, newSub]
+      setSubscriptions(updatedSubs)
       setNewUrl('')
+
+      // Auto-save to trigger fetch
+      setIsSavingCustomFields(true)
+      try {
+          const response = await fetch('/api/custom-fields', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                  subscriptions: updatedSubs,
+                  selectors: selectors
+              })
+          })
+
+          if (response.ok) {
+              toast.success('Subscription added and fetching triggered!')
+              fetchConfigs() // reload to get fetch times
+          } else {
+              throw new Error(`Failed to save custom fields: ${response.statusText}`)
+          }
+      } catch (err) {
+          toast.error(err instanceof Error ? err.message : 'Failed to save custom fields.')
+      } finally {
+          setIsSavingCustomFields(false)
+      }
   }
 
+  const handleUpdateSubscription = async (index: number) => {
+      try {
+          const response = await fetch(`/api/subscriptions/${index}/update`, {
+              method: 'POST',
+          })
+          if (response.ok) {
+              toast.success('Subscription updated!')
+              fetchConfigs() // Refresh
+          } else {
+              throw new Error(`Failed to update subscription: ${response.statusText}`)
+          }
+      } catch (err) {
+          toast.error(err instanceof Error ? err.message : 'Failed to update subscription.')
+      }
+  }
   const handleRemoveUrl = (indexToRemove: number) => {
-      setSubscriptionUrls(subscriptionUrls.filter((_, index) => index !== indexToRemove))
+      setSubscriptions(subscriptions.filter((_, index) => index !== indexToRemove))
   }
 
   // Selector Form State
@@ -484,30 +531,36 @@ export function Config() {
                       </button>
                   </div>
 
-                  {subscriptionUrls.length === 0 ? (
+                  {subscriptions.length === 0 ? (
                       <div className="text-sm text-base-content/50 text-center py-4 bg-base-100/50 rounded-md border border-base-300">
                           No subscription URLs added yet.
                       </div>
                   ) : (
                       <ul className="space-y-2">
-                          {subscriptionUrls.map((url, idx) => (
-                              <li key={idx} className="flex items-center justify-between bg-base-100 border border-zinc-800 rounded-md px-3 py-2 text-sm">
-                                  <span className="text-base-content/80 truncate mr-4">{url}</span>
-                                  <div className="flex items-center gap-2">
-                                      <button
-                                          type="button"
-                                          className="text-base-content/50 hover:text-primary transition-colors shrink-0 p-1.5 rounded-md hover:bg-base-300"
-                                          title="Update Subscription"
-                                      >
-                                          <RefreshCw className="h-4 w-4" />
-                                      </button>
-                                      <button
-                                          onClick={() => handleRemoveUrl(idx)}
-                                          className="text-base-content/50 hover:text-red-400 transition-colors shrink-0 p-1.5 rounded-md hover:bg-base-300"
-                                          title="Remove URL"
-                                      >
-                                          <Trash2 className="h-4 w-4" />
-                                      </button>
+                          {subscriptions.map((sub, idx) => (
+                              <li key={idx} className="flex flex-col bg-base-100 border border-zinc-800 rounded-md px-3 py-2 text-sm">
+                                  <div className="flex items-center justify-between">
+                                      <span className="text-base-content/80 truncate mr-4">{sub.url}</span>
+                                      <div className="flex items-center gap-2">
+                                          <button
+                                              onClick={() => handleUpdateSubscription(idx)}
+                                              type="button"
+                                              className="text-base-content/50 hover:text-primary transition-colors shrink-0 p-1.5 rounded-md hover:bg-base-300"
+                                              title="Update Subscription"
+                                          >
+                                              <RefreshCw className="h-4 w-4" />
+                                          </button>
+                                          <button
+                                              onClick={() => handleRemoveUrl(idx)}
+                                              className="text-base-content/50 hover:text-red-400 transition-colors shrink-0 p-1.5 rounded-md hover:bg-base-300"
+                                              title="Remove URL"
+                                          >
+                                              <Trash2 className="h-4 w-4" />
+                                          </button>
+                                      </div>
+                                  </div>
+                                  <div className="text-xs text-base-content/50 mt-1">
+                                      Last fetched: {sub.last_fetched ? new Date(sub.last_fetched).toLocaleString() : 'Never'}
                                   </div>
                               </li>
                           ))}
