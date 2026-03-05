@@ -202,6 +202,12 @@ export function Config() {
 
   const hasEditorChanges = configContent !== originalContent
 
+  const sortedConfigs = [...configs].sort((a, b) => {
+      if (a === activeConfig) return -1;
+      if (b === activeConfig) return 1;
+      return a.localeCompare(b);
+  });
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -242,8 +248,8 @@ export function Config() {
                   No configuration files found. Upload one to get started.
               </div>
           ) : (
-              <ul className="divide-y divide-zinc-800/50 max-h-[60vh] overflow-y-auto custom-scrollbar">
-                  {configs.map((filename) => (
+              <ul className="divide-y divide-zinc-800/50 max-h-[30vh] overflow-y-auto custom-scrollbar">
+                  {sortedConfigs.map((filename) => (
                       <li key={filename} className="flex items-center justify-between p-4 hover:bg-zinc-800/30 transition-colors">
                           <div className="flex items-center gap-3">
                               <FileJson className="h-5 w-5 text-indigo-400" />
