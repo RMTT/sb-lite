@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import Editor from '@monaco-editor/react'
-import { UploadCloud, Save, RefreshCw, FileJson, Play, Edit, X } from 'lucide-react'
+import { UploadCloud, Save, RefreshCw, FileJson, Play, Edit, X, Plus } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface ConfigsResponse {
@@ -22,6 +22,10 @@ export function Config() {
   const [isUploadOpen, setIsUploadOpen] = useState(false)
   const [uploadFileName, setUploadFileName] = useState('')
   const [uploadFileContent, setUploadFileContent] = useState('')
+
+  // Create Modal State
+  const [isCreateOpen, setIsCreateOpen] = useState(false)
+  const [createFileName, setCreateFileName] = useState('')
 
   const [isLoading, setIsLoading] = useState<boolean>(true)
   const [isSaving, setIsSaving] = useState<boolean>(false)
@@ -200,6 +204,43 @@ export function Config() {
       }
   }
 
+  const handleCreateSubmit = async () => {
+      if (!createFileName.trim()) {
+          toast.error("Filename cannot be empty.")
+          return
+      }
+
+      let finalName = createFileName.trim()
+      if (!finalName.endsWith('.json')) {
+          finalName += '.json'
+      }
+
+      setIsSaving(true)
+      try {
+          const response = await fetch(`/api/config/${finalName}`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              // Send an empty JSON object to create a valid empty file
+              body: "{\n\n}"
+          })
+          if (response.ok) {
+              toast.success(`Configuration ${finalName} created successfully!`)
+              setIsCreateOpen(false)
+              setCreateFileName('')
+              fetchConfigs() // refresh list
+
+              // Automatically open the editor for the new file
+              handleOpenEditor(finalName)
+          } else {
+              throw new Error(`Failed to create config: ${response.statusText}`)
+          }
+      } catch (err) {
+          toast.error(err instanceof Error ? err.message : 'Failed to create config.')
+      } finally {
+          setIsSaving(false)
+      }
+  }
+
   const hasEditorChanges = configContent !== originalContent
 
   const sortedConfigs = [...configs].sort((a, b) => {
@@ -214,6 +255,17 @@ export function Config() {
         <h1 className="text-2xl font-semibold tracking-tight text-zinc-100">Configuration</h1>
 
         <div className="flex items-center gap-3">
+            <button
+              onClick={() => {
+                  setCreateFileName('')
+                  setIsCreateOpen(true)
+              }}
+              className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-zinc-300 bg-zinc-800/50 hover:bg-zinc-800 hover:text-zinc-100 border border-zinc-700/50 rounded-md transition-colors shadow-sm"
+              disabled={isLoading || isSaving}
+            >
+              <Plus className="h-4 w-4" />
+              New Config
+            </button>
             <button
               onClick={() => fileInputRef.current?.click()}
               className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-zinc-300 bg-zinc-800/50 hover:bg-zinc-800 hover:text-zinc-100 border border-zinc-700/50 rounded-md transition-colors shadow-sm"
@@ -328,6 +380,52 @@ export function Config() {
                       >
                           {isSaving && <RefreshCw className="h-4 w-4 animate-spin" />}
                           Save Upload
+                      </button>
+                  </div>
+              </div>
+          </div>
+      )}
+
+      {/* Create Name Modal */}
+      {isCreateOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+              <div className="bg-[#18181b] border border-zinc-800 rounded-lg shadow-2xl w-full max-w-md overflow-hidden">
+                  <div className="p-4 border-b border-zinc-800/50 flex justify-between items-center">
+                      <h3 className="text-lg font-medium text-zinc-100">Create Configuration</h3>
+                      <button onClick={() => setIsCreateOpen(false)} className="text-zinc-400 hover:text-zinc-100">
+                          <X className="h-5 w-5" />
+                      </button>
+                  </div>
+                  <div className="p-4 space-y-4">
+                      <div>
+                          <label htmlFor="createFileName" className="block text-sm font-medium text-zinc-400 mb-1">
+                              New filename:
+                          </label>
+                          <input
+                              type="text"
+                              id="createFileName"
+                              value={createFileName}
+                              onChange={(e) => setCreateFileName(e.target.value)}
+                              className="w-full bg-[#09090b] border border-zinc-700 rounded-md px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500"
+                              placeholder="e.g., custom-config.json"
+                              autoFocus
+                          />
+                      </div>
+                  </div>
+                  <div className="p-4 bg-[#09090b] border-t border-zinc-800/50 flex justify-end gap-2">
+                      <button
+                          onClick={() => setIsCreateOpen(false)}
+                          className="px-4 py-2 text-sm font-medium text-zinc-400 hover:text-zinc-100 transition-colors"
+                      >
+                          Cancel
+                      </button>
+                      <button
+                          onClick={handleCreateSubmit}
+                          disabled={isSaving}
+                          className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-indigo-500 text-white rounded-md hover:bg-indigo-600 transition-colors shadow-sm disabled:opacity-50"
+                      >
+                          {isSaving && <RefreshCw className="h-4 w-4 animate-spin" />}
+                          Create
                       </button>
                   </div>
               </div>
