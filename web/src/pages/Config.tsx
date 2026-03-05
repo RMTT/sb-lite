@@ -342,260 +342,274 @@ export function Config() {
   }
 
   return (
-    <div className="space-y-6 pb-24">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold tracking-tight text-zinc-100">Configuration</h1>
+    <div className="space-y-8 pb-24">
+      <h1 className="text-2xl font-semibold tracking-tight text-zinc-100">Configuration</h1>
 
-        <div className="flex items-center gap-3">
-            <button
-              onClick={() => {
-                  setCreateFileName('')
-                  setIsCreateOpen(true)
-              }}
-              className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-zinc-300 bg-zinc-800/50 hover:bg-zinc-800 hover:text-zinc-100 border border-zinc-700/50 rounded-md transition-colors shadow-sm"
-              disabled={isLoading || isSaving}
-            >
-              <Plus className="h-4 w-4" />
-              New Config
-            </button>
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-zinc-300 bg-zinc-800/50 hover:bg-zinc-800 hover:text-zinc-100 border border-zinc-700/50 rounded-md transition-colors shadow-sm"
-              disabled={isLoading || isSaving}
-            >
-              <UploadCloud className="h-4 w-4" />
-              Upload Local Config
-            </button>
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleFileSelect}
-              accept=".json"
-              className="hidden"
-            />
-
-            <button
-                onClick={fetchConfigs}
-                className="p-1.5 text-zinc-400 hover:text-zinc-100 bg-zinc-800/50 hover:bg-zinc-800 border border-zinc-700/50 rounded-md transition-colors"
-                title="Reload Configs"
-                disabled={isLoading}
-            >
-                <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-            </button>
-        </div>
-      </div>
-
-      {/* Configs List */}
-      <div className="border border-zinc-800/50 rounded-lg overflow-hidden shadow-sm bg-[#09090b] mb-8">
-          {configs.length === 0 && !isLoading ? (
-              <div className="p-8 text-center text-zinc-500 text-sm">
-                  No configuration files found. Upload one to get started.
+      {/* Configs Card */}
+      <div className="bg-[#09090b] border border-zinc-800/50 rounded-xl overflow-hidden shadow-sm">
+          <div className="p-5 border-b border-zinc-800/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                  <h2 className="text-lg font-medium text-zinc-100">Local Configurations</h2>
+                  <p className="text-sm text-zinc-400 mt-1">Manage and select your sing-box configuration files.</p>
               </div>
-          ) : (
-              <ul className="divide-y divide-zinc-800/50 max-h-[30vh] overflow-y-auto custom-scrollbar">
-                  {sortedConfigs.map((filename) => (
-                      <li key={filename} className="flex items-center justify-between p-4 hover:bg-zinc-800/30 transition-colors">
-                          <div className="flex items-center gap-3">
-                              <FileJson className="h-5 w-5 text-indigo-400" />
-                              <span className="font-medium text-zinc-200">{filename}</span>
-                              {activeConfig === filename && (
-                                  <span className="px-2 py-0.5 text-[10px] uppercase tracking-wider font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-full">
-                                      Active
-                                  </span>
-                              )}
-                          </div>
-                          <div className="flex items-center gap-2">
-                              <button
-                                  onClick={() => handleApplyConfig(filename)}
-                                  disabled={isLoading || activeConfig === filename}
-                                  className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md transition-colors shadow-sm ${
-                                      activeConfig === filename
-                                      ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed'
-                                      : 'bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 border border-indigo-500/20'
-                                  }`}
-                                  title="Apply this configuration"
-                              >
-                                  <Play className="h-3.5 w-3.5" />
-                                  Apply
-                              </button>
-                              <button
-                                  onClick={() => handleOpenEditor(filename)}
-                                  disabled={isLoading}
-                                  className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-zinc-300 bg-zinc-800/50 hover:bg-zinc-800 hover:text-zinc-100 border border-zinc-700/50 rounded-md transition-colors shadow-sm"
-                              >
-                                  <Edit className="h-3.5 w-3.5" />
-                                  Edit
-                              </button>
-                          </div>
-                      </li>
-                  ))}
-              </ul>
-          )}
-      </div>
-
-      <div className="flex items-center justify-between mt-8 mb-4">
-          <h2 className="text-xl font-semibold tracking-tight text-zinc-100">Subscription URLs</h2>
-      </div>
-
-      <div className="border border-zinc-800/50 rounded-lg overflow-hidden shadow-sm bg-[#09090b] p-4 space-y-4">
-          <div className="flex gap-2">
-              <input
-                  type="text"
-                  value={newUrl}
-                  onChange={(e) => setNewUrl(e.target.value)}
-                  placeholder="https://example.com/subscribe"
-                  className="flex-1 bg-[#18181b] border border-zinc-700 rounded-md px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500"
-                  onKeyDown={(e) => {
-                      if (e.key === 'Enter') handleAddUrl()
-                  }}
-              />
-              <button
-                  onClick={handleAddUrl}
-                  disabled={!newUrl.trim()}
-                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-zinc-800 text-zinc-100 rounded-md hover:bg-zinc-700 transition-colors shadow-sm disabled:opacity-50"
-              >
-                  <Plus className="h-4 w-4" />
-                  Add URL
-              </button>
-          </div>
-
-          {subscriptionUrls.length === 0 ? (
-              <div className="text-sm text-zinc-500 text-center py-4">No subscription URLs added yet.</div>
-          ) : (
-              <ul className="space-y-2">
-                  {subscriptionUrls.map((url, idx) => (
-                      <li key={idx} className="flex items-center justify-between bg-[#18181b] border border-zinc-800 rounded-md px-3 py-2 text-sm">
-                          <span className="text-zinc-300 truncate mr-4">{url}</span>
-                          <button
-                              onClick={() => handleRemoveUrl(idx)}
-                              className="text-zinc-500 hover:text-red-400 transition-colors shrink-0"
-                              title="Remove URL"
-                          >
-                              <Trash2 className="h-4 w-4" />
-                          </button>
-                      </li>
-                  ))}
-              </ul>
-          )}
-      </div>
-
-      <div className="flex items-center justify-between mt-8 mb-4">
-          <h2 className="text-xl font-semibold tracking-tight text-zinc-100">Selectors</h2>
-      </div>
-
-      <div className="border border-zinc-800/50 rounded-lg overflow-hidden shadow-sm bg-[#09090b] p-4 space-y-6 mb-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
-              <div className="space-y-1 lg:col-span-1">
-                  <label className="text-xs font-medium text-zinc-400">Name</label>
-                  <input
-                      type="text"
-                      value={newSelector.name}
-                      onChange={(e) => setNewSelector({...newSelector, name: e.target.value})}
-                      placeholder="e.g. US Nodes"
-                      className="w-full bg-[#18181b] border border-zinc-700 rounded-md px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500"
-                  />
-              </div>
-              <div className="space-y-1 lg:col-span-1">
-                  <label className="text-xs font-medium text-zinc-400">Regex</label>
-                  <input
-                      type="text"
-                      value={newSelector.regex}
-                      onChange={(e) => setNewSelector({...newSelector, regex: e.target.value})}
-                      placeholder="e.g. .*US.*"
-                      className="w-full bg-[#18181b] border border-zinc-700 rounded-md px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500"
-                  />
-              </div>
-              <div className="space-y-1 lg:col-span-1">
-                  <label className="text-xs font-medium text-zinc-400">Default (Optional)</label>
-                  <input
-                      type="text"
-                      value={newSelector.default}
-                      onChange={(e) => setNewSelector({...newSelector, default: e.target.value})}
-                      placeholder="Fallback tag"
-                      className="w-full bg-[#18181b] border border-zinc-700 rounded-md px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500"
-                  />
-              </div>
-              <div className="space-y-1 lg:col-span-1 flex items-center h-full pb-2">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                          type="checkbox"
-                          checked={newSelector.interrupt_exist_connections}
-                          onChange={(e) => setNewSelector({...newSelector, interrupt_exist_connections: e.target.checked})}
-                          className="w-4 h-4 rounded border-zinc-700 bg-[#18181b] text-indigo-500 focus:ring-indigo-500/50 focus:ring-offset-0"
-                      />
-                      <span className="text-xs font-medium text-zinc-400 select-none">Interrupt connections</span>
-                  </label>
-              </div>
-              <div className="lg:col-span-1">
+              <div className="flex items-center gap-3">
                   <button
-                      onClick={handleAddSelector}
-                      className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium bg-zinc-800 text-zinc-100 rounded-md hover:bg-zinc-700 transition-colors shadow-sm"
+                    onClick={() => {
+                        setCreateFileName('')
+                        setIsCreateOpen(true)
+                    }}
+                    className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-zinc-300 bg-zinc-800/50 hover:bg-zinc-800 hover:text-zinc-100 border border-zinc-700/50 rounded-md transition-colors shadow-sm"
+                    disabled={isLoading || isSaving}
                   >
-                      <Plus className="h-4 w-4" />
-                      Add Selector
+                    <Plus className="h-4 w-4" />
+                    New Config
+                  </button>
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-zinc-300 bg-zinc-800/50 hover:bg-zinc-800 hover:text-zinc-100 border border-zinc-700/50 rounded-md transition-colors shadow-sm"
+                    disabled={isLoading || isSaving}
+                  >
+                    <UploadCloud className="h-4 w-4" />
+                    Upload
+                  </button>
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleFileSelect}
+                    accept=".json"
+                    className="hidden"
+                  />
+
+                  <button
+                      onClick={fetchConfigs}
+                      className="p-1.5 text-zinc-400 hover:text-zinc-100 bg-zinc-800/50 hover:bg-zinc-800 border border-zinc-700/50 rounded-md transition-colors"
+                      title="Reload Configs"
+                      disabled={isLoading}
+                  >
+                      <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
                   </button>
               </div>
           </div>
-
-          {selectors.length === 0 ? (
-              <div className="text-sm text-zinc-500 text-center py-4 border-t border-zinc-800/50 pt-8">No selectors added yet.</div>
-          ) : (
-              <div className="border-t border-zinc-800/50 pt-4">
-                  <div className="overflow-x-auto">
-                      <table className="w-full text-sm text-left">
-                          <thead className="text-xs text-zinc-400 bg-[#18181b] border-y border-zinc-800">
-                              <tr>
-                                  <th className="px-4 py-2 font-medium">Name</th>
-                                  <th className="px-4 py-2 font-medium">Regex</th>
-                                  <th className="px-4 py-2 font-medium">Default</th>
-                                  <th className="px-4 py-2 font-medium text-center">Interrupt</th>
-                                  <th className="px-4 py-2 font-medium text-right">Actions</th>
-                              </tr>
-                          </thead>
-                          <tbody className="divide-y divide-zinc-800/50">
-                              {selectors.map((sel, idx) => (
-                                  <tr key={idx} className="hover:bg-zinc-800/30 transition-colors">
-                                      <td className="px-4 py-2 text-zinc-200">{sel.name}</td>
-                                      <td className="px-4 py-2 text-zinc-400 font-mono text-xs">{sel.regex}</td>
-                                      <td className="px-4 py-2 text-zinc-400">{sel.default || '-'}</td>
-                                      <td className="px-4 py-2 text-center">
-                                          {sel.interrupt_exist_connections ? (
-                                              <span className="text-emerald-400 font-medium">Yes</span>
-                                          ) : (
-                                              <span className="text-zinc-500">No</span>
-                                          )}
-                                      </td>
-                                      <td className="px-4 py-2 text-right">
-                                          <button
-                                              onClick={() => handleRemoveSelector(idx)}
-                                              className="text-zinc-500 hover:text-red-400 transition-colors p-1 rounded-md hover:bg-zinc-800"
-                                              title="Remove Selector"
-                                          >
-                                              <Trash2 className="h-4 w-4" />
-                                          </button>
-                                      </td>
-                                  </tr>
-                              ))}
-                          </tbody>
-                      </table>
+          <div className="bg-[#09090b]">
+              {configs.length === 0 && !isLoading ? (
+                  <div className="p-8 text-center text-zinc-500 text-sm">
+                      No configuration files found. Upload one to get started.
                   </div>
-              </div>
-          )}
+              ) : (
+                  <ul className="divide-y divide-zinc-800/50 max-h-[35vh] overflow-y-auto custom-scrollbar">
+                      {sortedConfigs.map((filename) => (
+                          <li key={filename} className="flex items-center justify-between p-4 hover:bg-zinc-800/30 transition-colors">
+                              <div className="flex items-center gap-3">
+                                  <FileJson className="h-5 w-5 text-indigo-400" />
+                                  <span className="font-medium text-zinc-200">{filename}</span>
+                                  {activeConfig === filename && (
+                                      <span className="px-2 py-0.5 text-[10px] uppercase tracking-wider font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-full">
+                                          Active
+                                      </span>
+                                  )}
+                              </div>
+                              <div className="flex items-center gap-2">
+                                  <button
+                                      onClick={() => handleApplyConfig(filename)}
+                                      disabled={isLoading || activeConfig === filename}
+                                      className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md transition-colors shadow-sm ${
+                                          activeConfig === filename
+                                          ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed'
+                                          : 'bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 border border-indigo-500/20'
+                                      }`}
+                                      title="Apply this configuration"
+                                  >
+                                      <Play className="h-3.5 w-3.5" />
+                                      Apply
+                                  </button>
+                                  <button
+                                      onClick={() => handleOpenEditor(filename)}
+                                      disabled={isLoading}
+                                      className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-zinc-300 bg-zinc-800/50 hover:bg-zinc-800 hover:text-zinc-100 border border-zinc-700/50 rounded-md transition-colors shadow-sm"
+                                  >
+                                      <Edit className="h-3.5 w-3.5" />
+                                      Edit
+                                  </button>
+                              </div>
+                          </li>
+                      ))}
+                  </ul>
+              )}
+          </div>
       </div>
 
-      <div className="flex justify-end pt-4 border-t border-zinc-800/50">
-          <button
-              onClick={handleSaveCustomFields}
-              disabled={isSavingCustomFields}
-              className="flex items-center gap-2 px-6 py-2 text-sm font-medium bg-indigo-500 text-white rounded-md hover:bg-indigo-600 transition-colors shadow-sm disabled:opacity-50"
-          >
-              {isSavingCustomFields ? (
-                  <RefreshCw className="h-4 w-4 animate-spin" />
-              ) : (
-                  <Save className="h-4 w-4" />
-              )}
-              Save Custom Settings
-          </button>
+      {/* Custom Fields Settings Card */}
+      <div className="bg-[#09090b] border border-zinc-800/50 rounded-xl overflow-hidden shadow-sm flex flex-col">
+          <div className="p-5 border-b border-zinc-800/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                  <h2 className="text-lg font-medium text-zinc-100">Custom Settings</h2>
+                  <p className="text-sm text-zinc-400 mt-1">Configure remote subscriptions and proxy selectors.</p>
+              </div>
+              <button
+                  onClick={handleSaveCustomFields}
+                  disabled={isSavingCustomFields}
+                  className="flex items-center gap-2 px-4 py-1.5 text-sm font-medium bg-indigo-500 text-white rounded-md hover:bg-indigo-600 transition-colors shadow-sm disabled:opacity-50"
+              >
+                  {isSavingCustomFields ? (
+                      <RefreshCw className="h-4 w-4 animate-spin" />
+                  ) : (
+                      <Save className="h-4 w-4" />
+                  )}
+                  Save Changes
+              </button>
+          </div>
+
+          <div className="p-5 space-y-8">
+              {/* Subscription URLs Section */}
+              <div className="space-y-4">
+                  <h3 className="text-sm font-medium text-zinc-300">Subscription URLs</h3>
+                  <div className="flex gap-2">
+                      <input
+                          type="text"
+                          value={newUrl}
+                          onChange={(e) => setNewUrl(e.target.value)}
+                          placeholder="https://example.com/subscribe"
+                          className="flex-1 bg-[#18181b] border border-zinc-700 rounded-md px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500"
+                          onKeyDown={(e) => {
+                              if (e.key === 'Enter') handleAddUrl()
+                          }}
+                      />
+                      <button
+                          onClick={handleAddUrl}
+                          disabled={!newUrl.trim()}
+                          className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-zinc-800 text-zinc-100 rounded-md hover:bg-zinc-700 transition-colors shadow-sm disabled:opacity-50"
+                      >
+                          <Plus className="h-4 w-4" />
+                          Add URL
+                      </button>
+                  </div>
+
+                  {subscriptionUrls.length === 0 ? (
+                      <div className="text-sm text-zinc-500 text-center py-4 bg-[#18181b]/50 rounded-md border border-zinc-800/50">
+                          No subscription URLs added yet.
+                      </div>
+                  ) : (
+                      <ul className="space-y-2">
+                          {subscriptionUrls.map((url, idx) => (
+                              <li key={idx} className="flex items-center justify-between bg-[#18181b] border border-zinc-800 rounded-md px-3 py-2 text-sm">
+                                  <span className="text-zinc-300 truncate mr-4">{url}</span>
+                                  <button
+                                      onClick={() => handleRemoveUrl(idx)}
+                                      className="text-zinc-500 hover:text-red-400 transition-colors shrink-0"
+                                      title="Remove URL"
+                                  >
+                                      <Trash2 className="h-4 w-4" />
+                                  </button>
+                              </li>
+                          ))}
+                      </ul>
+                  )}
+              </div>
+
+              <div className="h-px bg-zinc-800/50 w-full" />
+
+              {/* Selectors Section */}
+              <div className="space-y-4">
+                  <h3 className="text-sm font-medium text-zinc-300">Selectors</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-end bg-[#18181b] p-4 rounded-lg border border-zinc-800">
+                      <div className="space-y-1 lg:col-span-1">
+                          <label className="text-xs font-medium text-zinc-400">Name</label>
+                          <input
+                              type="text"
+                              value={newSelector.name}
+                              onChange={(e) => setNewSelector({...newSelector, name: e.target.value})}
+                              placeholder="e.g. US Nodes"
+                              className="w-full bg-[#09090b] border border-zinc-700 rounded-md px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500"
+                          />
+                      </div>
+                      <div className="space-y-1 lg:col-span-1">
+                          <label className="text-xs font-medium text-zinc-400">Regex</label>
+                          <input
+                              type="text"
+                              value={newSelector.regex}
+                              onChange={(e) => setNewSelector({...newSelector, regex: e.target.value})}
+                              placeholder="e.g. .*US.*"
+                              className="w-full bg-[#09090b] border border-zinc-700 rounded-md px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500"
+                          />
+                      </div>
+                      <div className="space-y-1 lg:col-span-1">
+                          <label className="text-xs font-medium text-zinc-400">Default (Optional)</label>
+                          <input
+                              type="text"
+                              value={newSelector.default}
+                              onChange={(e) => setNewSelector({...newSelector, default: e.target.value})}
+                              placeholder="Fallback tag"
+                              className="w-full bg-[#09090b] border border-zinc-700 rounded-md px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500"
+                          />
+                      </div>
+                      <div className="space-y-1 lg:col-span-1 flex items-center h-full pb-2">
+                          <label className="flex items-center gap-2 cursor-pointer">
+                              <input
+                                  type="checkbox"
+                                  checked={newSelector.interrupt_exist_connections}
+                                  onChange={(e) => setNewSelector({...newSelector, interrupt_exist_connections: e.target.checked})}
+                                  className="w-4 h-4 rounded border-zinc-700 bg-[#09090b] text-indigo-500 focus:ring-indigo-500/50 focus:ring-offset-0"
+                              />
+                              <span className="text-xs font-medium text-zinc-400 select-none">Interrupt connections</span>
+                          </label>
+                      </div>
+                      <div className="lg:col-span-1">
+                          <button
+                              onClick={handleAddSelector}
+                              className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium bg-zinc-800 text-zinc-100 rounded-md hover:bg-zinc-700 transition-colors shadow-sm"
+                          >
+                              <Plus className="h-4 w-4" />
+                              Add
+                          </button>
+                      </div>
+                  </div>
+
+                  {selectors.length === 0 ? (
+                      <div className="text-sm text-zinc-500 text-center py-4 bg-[#18181b]/50 rounded-md border border-zinc-800/50">
+                          No selectors added yet.
+                      </div>
+                  ) : (
+                      <div className="overflow-x-auto rounded-md border border-zinc-800">
+                          <table className="w-full text-sm text-left">
+                              <thead className="text-xs text-zinc-400 bg-[#18181b] border-b border-zinc-800">
+                                  <tr>
+                                      <th className="px-4 py-3 font-medium">Name</th>
+                                      <th className="px-4 py-3 font-medium">Regex</th>
+                                      <th className="px-4 py-3 font-medium">Default</th>
+                                      <th className="px-4 py-3 font-medium text-center">Interrupt</th>
+                                      <th className="px-4 py-3 font-medium text-right">Actions</th>
+                                  </tr>
+                              </thead>
+                              <tbody className="divide-y divide-zinc-800/50 bg-[#09090b]/50">
+                                  {selectors.map((sel, idx) => (
+                                      <tr key={idx} className="hover:bg-zinc-800/30 transition-colors">
+                                          <td className="px-4 py-2.5 text-zinc-200">{sel.name}</td>
+                                          <td className="px-4 py-2.5 text-zinc-400 font-mono text-xs">{sel.regex}</td>
+                                          <td className="px-4 py-2.5 text-zinc-400">{sel.default || '-'}</td>
+                                          <td className="px-4 py-2.5 text-center">
+                                              {sel.interrupt_exist_connections ? (
+                                                  <span className="text-emerald-400 font-medium">Yes</span>
+                                              ) : (
+                                                  <span className="text-zinc-500">No</span>
+                                              )}
+                                          </td>
+                                          <td className="px-4 py-2.5 text-right">
+                                              <button
+                                                  onClick={() => handleRemoveSelector(idx)}
+                                                  className="text-zinc-500 hover:text-red-400 transition-colors p-1.5 rounded-md hover:bg-zinc-800"
+                                                  title="Remove Selector"
+                                              >
+                                                  <Trash2 className="h-4 w-4" />
+                                              </button>
+                                          </td>
+                                      </tr>
+                                  ))}
+                              </tbody>
+                          </table>
+                      </div>
+                  )}
+              </div>
+          </div>
       </div>
 
       {/* Upload Name Modal */}
