@@ -16,9 +16,9 @@ use tokio::sync::RwLock;
 #[derive(Parser, Debug, Clone)]
 #[command(version, about, long_about = None)]
 struct Args {
-    /// Port to listen on
-    #[arg(short, long, default_value_t = 8180)]
-    port: u16,
+    /// Address to listen on (format: address:port)
+    #[arg(short, long, default_value = "127.0.0.1:8180")]
+    listen: String,
     /// Path to the sing-box binary
     #[arg(long)]
     sing_box_path: Option<String>,
@@ -371,7 +371,7 @@ async fn main() {
         .fallback(get(static_handler))
         .with_state(shared_state);
 
-    let addr = format!("0.0.0.0:{}", args.port);
+    let addr = args.listen.clone();
     let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
     info!("Listening on http://{}", addr);
     axum::serve(listener, app).await.unwrap();
