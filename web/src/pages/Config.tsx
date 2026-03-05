@@ -44,6 +44,10 @@ export function Config() {
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [createFileName, setCreateFileName] = useState('')
 
+  // Delete Modal State
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false)
+  const [deleteFileName, setDeleteFileName] = useState('')
+
   const [isLoading, setIsLoading] = useState<boolean>(true)
   const [isSaving, setIsSaving] = useState<boolean>(false)
 
@@ -294,6 +298,29 @@ export function Config() {
       }
   }
 
+  const handleDeleteSubmit = async () => {
+      if (!deleteFileName) return
+
+      setIsSaving(true)
+      try {
+          const response = await fetch(`/api/config/${deleteFileName}`, {
+              method: 'DELETE',
+          })
+          if (response.ok) {
+              toast.success(`Configuration ${deleteFileName} deleted successfully!`)
+              setIsDeleteOpen(false)
+              setDeleteFileName('')
+              fetchConfigs() // refresh list
+          } else {
+              throw new Error(`Failed to delete config: ${response.statusText}`)
+          }
+      } catch (err) {
+          toast.error(err instanceof Error ? err.message : 'Failed to delete config.')
+      } finally {
+          setIsSaving(false)
+      }
+  }
+
   const hasEditorChanges = configContent !== originalContent
 
   const sortedConfigs = [...configs].sort((a, b) => {
@@ -421,6 +448,17 @@ export function Config() {
                                   >
                                       <Edit className="h-3.5 w-3.5" />
                                       Edit
+                                  </button>
+                                  <button
+                                      onClick={() => {
+                                          setDeleteFileName(filename)
+                                          setIsDeleteOpen(true)
+                                      }}
+                                      disabled={isLoading || activeConfig === filename}
+                                      className="btn btn-sm btn-outline hover:bg-red-500/10 hover:border-red-500/50 hover:text-red-500 text-base-content/60"
+                                      title="Delete this configuration"
+                                  >
+                                      <Trash2 className="h-3.5 w-3.5" />
                                   </button>
                               </div>
                           </li>
@@ -706,6 +744,42 @@ export function Config() {
                       >
                           {isSaving && <RefreshCw className="h-4 w-4 animate-spin" />}
                           Create
+                      </button>
+                  </div>
+              </div>
+          </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {isDeleteOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+              <div className="bg-base-100 border border-zinc-800 rounded-lg shadow-2xl w-full max-w-md overflow-hidden">
+                  <div className="p-4 border-b border-base-300 flex justify-between items-center">
+                      <h3 className="text-lg font-medium text-base-content text-red-500">Delete Configuration</h3>
+                      <button onClick={() => setIsDeleteOpen(false)} className="text-base-content/60 hover:text-base-content">
+                          <X className="h-5 w-5" />
+                      </button>
+                  </div>
+                  <div className="p-6 space-y-4">
+                      <p className="text-base-content/80">
+                          Are you sure you want to delete <span className="font-semibold text-base-content">{deleteFileName}</span>?
+                      </p>
+                      <p className="text-sm text-base-content/60">This action cannot be undone.</p>
+                  </div>
+                  <div className="p-4 bg-base-200 border-t border-base-300 flex justify-end gap-2">
+                      <button
+                          onClick={() => setIsDeleteOpen(false)}
+                          className="px-4 py-2 text-sm font-medium text-base-content/60 hover:text-base-content transition-colors"
+                      >
+                          Cancel
+                      </button>
+                      <button
+                          onClick={handleDeleteSubmit}
+                          disabled={isSaving}
+                          className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-red-500/10 text-red-500 border border-red-500/20 rounded-md hover:bg-red-500 hover:text-white transition-colors shadow-sm disabled:opacity-50"
+                      >
+                          {isSaving && <RefreshCw className="h-4 w-4 animate-spin" />}
+                          Delete
                       </button>
                   </div>
               </div>
