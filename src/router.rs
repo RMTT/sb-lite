@@ -1,7 +1,7 @@
 use crate::handlers::{
     apply_config_handler, get_config_handler, get_custom_fields_handler, list_configs_handler,
     static_handler, update_config_handler, update_custom_fields_handler,
-    update_subscription_handler,
+    update_subscription_handler, validate_subscription_handler,
 };
 use crate::state::AppState;
 use axum::{
@@ -23,6 +23,10 @@ pub fn create_router(state: AppState) -> Router {
         .route(
             "/api/subscriptions/{index}/update",
             post(update_subscription_handler),
+        )
+        .route(
+            "/api/subscriptions/validate",
+            post(validate_subscription_handler),
         )
         .route("/api/config/apply", post(apply_config_handler))
         .fallback(get(static_handler))

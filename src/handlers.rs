@@ -328,6 +328,68 @@ pub async fn static_handler(uri: Uri) -> impl IntoResponse {
     }
 }
 
+#[derive(Deserialize)]
+pub struct ValidateSubscriptionRequest {
+    pub url: String,
+}
+
+#[derive(Serialize)]
+pub struct ValidateSubscriptionResponse {
+    pub raw_data: String,
+    pub last_fetched: chrono::DateTime<chrono::Utc>,
+}
+
+pub async fn validate_subscription_handler(
+    Json(payload): Json<ValidateSubscriptionRequest>,
+) -> Response {
+    let client = reqwest::Client::builder()
+        .user_agent("Shadowrocket")
+        .build()
+        .unwrap_or_default();
+
+    match client.get(&payload.url).send().await {
+        Ok(resp) => {
+            let status = resp.status();
+            if status.is_success() {
+                if let Ok(text) = resp.text().await {
+                    // Try to parse it to ensure it's valid SIP008
+                    match serde_json::from_str::<Sip008Data>(&text) {
+                        Ok(_data) => {
+                            // Valid format
+                            let response_data = ValidateSubscriptionResponse {
+                                raw_data: text,
+                                last_fetched: chrono::Utc::now(),
+                            };
+                            return (StatusCode::OK, Json(response_data)).into_response();
+                        }
+                        Err(e) => {
+                            error!(
+                                "Failed to parse subscription {} as SIP008: {}",
+                                payload.url, e
+                            );
+                            return (
+                                StatusCode::BAD_REQUEST,
+                                "Subscription data is not in a supported format (SIP008)",
+                            )
+                                .into_response();
+                        }
+                    }
+                }
+            }
+            (
+                StatusCode::BAD_GATEWAY,
+                format!("Failed to fetch subscription: HTTP {}", status),
+            )
+                .into_response()
+        }
+        Err(e) => (
+            StatusCode::BAD_GATEWAY,
+            format!("Failed to fetch subscription: {}", e),
+        )
+            .into_response(),
+    }
+}
+
 pub async fn update_subscription_handler(
     State(state): State<AppState>,
     Path(index): Path<usize>,
@@ -348,18 +410,30 @@ pub async fn update_subscription_handler(
             let status = resp.status();
             if status.is_success() {
                 if let Ok(text) = resp.text().await {
-                    if let Err(e) = state
-                        .update_subscription(index, chrono::Utc::now(), text)
-                        .await
-                    {
-                        return (
-                            StatusCode::INTERNAL_SERVER_ERROR,
-                            format!("Failed to update subscription state: {}", e),
-                        )
-                            .into_response();
+                    match serde_json::from_str::<Sip008Data>(&text) {
+                        Ok(_) => {
+                            if let Err(e) = state
+                                .update_subscription(index, chrono::Utc::now(), text)
+                                .await
+                            {
+                                return (
+                                    StatusCode::INTERNAL_SERVER_ERROR,
+                                    format!("Failed to update subscription state: {}", e),
+                                )
+                                    .into_response();
+                            }
+                            info!("Successfully updated subscription: {}", url);
+                            return (StatusCode::OK, "Subscription updated").into_response();
+                        }
+                        Err(e) => {
+                            error!("Failed to parse subscription {} as SIP008: {}", url, e);
+                            return (
+                                StatusCode::BAD_REQUEST,
+                                "Fetched subscription data is not in a supported format (SIP008)",
+                            )
+                                .into_response();
+                        }
                     }
-                    info!("Successfully updated subscription: {}", url);
-                    return (StatusCode::OK, "Subscription updated").into_response();
                 }
             }
             (

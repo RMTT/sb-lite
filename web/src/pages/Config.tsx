@@ -30,6 +30,7 @@ export function Config() {
   const [configs, setConfigs] = useState<string[]>([])
   const [activeConfig, setActiveConfig] = useState<string | null>(null)
   const [updatingIndex, setUpdatingIndex] = useState<number | null>(null)
+  const [isAddingUrl, setIsAddingUrl] = useState(false)
 
   // Custom Fields State
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([])
@@ -289,15 +290,39 @@ export function Config() {
   const [newUrl, setNewUrl] = useState('')
 
   const handleAddUrl = async () => {
-      if (!newUrl.trim()) return
-      const newSub: Subscription = { url: newUrl.trim(), last_fetched: null, raw_data: null }
-      const updatedSubs = [...subscriptions, newSub]
-      setSubscriptions(updatedSubs)
-      setNewUrl('')
+      const urlToAdd = newUrl.trim()
+      if (!urlToAdd) return
 
-      // Auto-save to trigger fetch
-      setIsSavingCustomFields(true)
+      setIsAddingUrl(true)
       try {
+          // Validate the URL first
+          const valRes = await fetch('/api/subscriptions/validate', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ url: urlToAdd })
+          })
+
+          if (!valRes.ok) {
+              let msg = valRes.statusText
+              try {
+                  const errorText = await valRes.text()
+                  if (errorText) msg = errorText
+              } catch { console.error("Error reading text"); }
+              throw new Error(msg)
+          }
+
+          const validationData = await valRes.json()
+
+          const newSub: Subscription = {
+              url: urlToAdd,
+              last_fetched: validationData.last_fetched,
+              raw_data: validationData.raw_data
+          }
+          const updatedSubs = [...subscriptions, newSub]
+          setSubscriptions(updatedSubs)
+          setNewUrl('')
+
+          setIsSavingCustomFields(true)
           const response = await fetch('/api/custom-fields', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -308,14 +333,15 @@ export function Config() {
           })
 
           if (response.ok) {
-              toast.success('Subscription added and fetching triggered!')
-              fetchConfigs() // reload to get fetch times
+              toast.success('Subscription validated and added!')
+              fetchConfigs() // reload
           } else {
               throw new Error(`Failed to save custom fields: ${response.statusText}`)
           }
       } catch (err) {
-          toast.error(err instanceof Error ? err.message : 'Failed to save custom fields.')
+          toast.error(err instanceof Error ? err.message : 'Failed to add subscription.')
       } finally {
+          setIsAddingUrl(false)
           setIsSavingCustomFields(false)
       }
   }
@@ -557,10 +583,14 @@ export function Config() {
                       />
                       <button
                           onClick={handleAddUrl}
-                          disabled={!newUrl.trim()}
+                          disabled={!newUrl.trim() || isAddingUrl}
                           className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-base-300 text-base-content rounded-md hover:bg-base-300/80 active:scale-95 transition-all shadow-sm disabled:opacity-50"
                       >
-                          <Plus className="h-4 w-4" />
+                          {isAddingUrl ? (
+                              <RefreshCw className="h-4 w-4 animate-spin" />
+                          ) : (
+                              <Plus className="h-4 w-4" />
+                          )}
                           Add URL
                       </button>
                   </div>
