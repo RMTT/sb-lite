@@ -1,13 +1,14 @@
 use axum::{
     Router,
-    extract::State,
+    extract::{Path, State},
     http::{StatusCode, Uri, header},
-    response::{IntoResponse, Response},
-    routing::get,
+    response::{IntoResponse, Json, Response},
+    routing::{get, post},
 };
 use clap::Parser;
 use log::{error, info};
 use rust_embed::Embed;
+use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use std::sync::Arc;
 
@@ -34,8 +35,93 @@ struct AppState {
     args: Arc<Args>,
 }
 
-async fn get_config_handler(State(state): State<AppState>) -> Response {
-    let config_path = state.args.state_directory.join("config.json");
+#[derive(Serialize, Deserialize)]
+struct ActiveConfigState {
+    active_config: Option<String>,
+}
+
+impl AppState {
+    fn state_file_path(&self) -> PathBuf {
+        self.args.state_directory.join("state.bin")
+    }
+
+    async fn get_active_config(&self) -> Option<String> {
+        let path = self.state_file_path();
+        match tokio::fs::read(&path).await {
+            Ok(bytes) => match bincode::deserialize::<ActiveConfigState>(&bytes) {
+                Ok(state) => state.active_config,
+                Err(e) => {
+                    error!("Failed to deserialize state file: {}", e);
+                    None
+                }
+            },
+            Err(_) => None,
+        }
+    }
+
+    async fn set_active_config(&self, filename: String) -> Result<(), String> {
+        let state = ActiveConfigState {
+            active_config: Some(filename),
+        };
+        let bytes = bincode::serialize(&state).map_err(|e| e.to_string())?;
+        tokio::fs::write(self.state_file_path(), bytes)
+            .await
+            .map_err(|e| e.to_string())
+    }
+}
+
+#[derive(Serialize)]
+struct ConfigsResponse {
+    files: Vec<String>,
+    active: Option<String>,
+}
+
+async fn list_configs_handler(State(state): State<AppState>) -> Response {
+    let mut files = Vec::new();
+    let mut entries = match tokio::fs::read_dir(&state.args.state_directory).await {
+        Ok(e) => e,
+        Err(e) => {
+            error!("Failed to read state directory: {}", e);
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Failed to read state directory",
+            )
+                .into_response();
+        }
+    };
+
+    while let Ok(Some(entry)) = entries.next_entry().await {
+        let path = entry.path();
+        if path.is_file() && path.extension().is_some_and(|ext| ext == "json") {
+            if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
+                files.push(name.to_string());
+            }
+        }
+    }
+
+    let active = state.get_active_config().await;
+
+    (StatusCode::OK, Json(ConfigsResponse { files, active })).into_response()
+}
+
+fn safe_filename(filename: &str) -> Option<String> {
+    if filename.contains('/') || filename.contains('\\') || filename.contains("..") {
+        None
+    } else {
+        Some(filename.to_string())
+    }
+}
+
+async fn get_config_handler(
+    State(state): State<AppState>,
+    Path(filename): Path<String>,
+) -> Response {
+    let safe_name = match safe_filename(&filename) {
+        Some(n) => n,
+        None => return (StatusCode::BAD_REQUEST, "Invalid filename").into_response(),
+    };
+
+    let config_path = state.args.state_directory.join(safe_name);
     match tokio::fs::read_to_string(&config_path).await {
         Ok(content) => (
             StatusCode::OK,
@@ -57,8 +143,17 @@ async fn get_config_handler(State(state): State<AppState>) -> Response {
     }
 }
 
-async fn update_config_handler(State(state): State<AppState>, body: String) -> Response {
-    let config_path = state.args.state_directory.join("config.json");
+async fn update_config_handler(
+    State(state): State<AppState>,
+    Path(filename): Path<String>,
+    body: String,
+) -> Response {
+    let safe_name = match safe_filename(&filename) {
+        Some(n) => n,
+        None => return (StatusCode::BAD_REQUEST, "Invalid filename").into_response(),
+    };
+
+    let config_path = state.args.state_directory.join(safe_name);
     match tokio::fs::write(&config_path, body).await {
         Ok(_) => {
             info!("Config file updated at {:?}", config_path);
@@ -73,6 +168,47 @@ async fn update_config_handler(State(state): State<AppState>, body: String) -> R
                 .into_response()
         }
     }
+}
+
+#[derive(Deserialize)]
+struct ApplyConfigRequest {
+    filename: String,
+}
+
+async fn apply_config_handler(
+    State(state): State<AppState>,
+    Json(payload): Json<ApplyConfigRequest>,
+) -> Response {
+    let safe_name = match safe_filename(&payload.filename) {
+        Some(n) => n,
+        None => return (StatusCode::BAD_REQUEST, "Invalid filename").into_response(),
+    };
+
+    let config_path = state.args.state_directory.join(&safe_name);
+    let content = match tokio::fs::read_to_string(&config_path).await {
+        Ok(c) => c,
+        Err(_) => return (StatusCode::NOT_FOUND, "Config file not found").into_response(),
+    };
+
+    // Save active state
+    if let Err(e) = state.set_active_config(safe_name.clone()).await {
+        error!("Failed to save active config state: {}", e);
+        return (StatusCode::INTERNAL_SERVER_ERROR, "Failed to save state").into_response();
+    }
+
+    // Write to /tmp/sing-box-lite-active.json
+    let tmp_path = PathBuf::from("/tmp/sing-box-lite-active.json");
+    if let Err(e) = tokio::fs::write(&tmp_path, content).await {
+        error!("Failed to write temporary config: {}", e);
+        return (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "Failed to write temporary config",
+        )
+            .into_response();
+    }
+
+    info!("Applied config {} to {:?}", safe_name, tmp_path);
+    (StatusCode::OK, "Config applied successfully").into_response()
 }
 
 async fn static_handler(uri: Uri) -> impl IntoResponse {
@@ -142,10 +278,12 @@ async fn main() {
     };
 
     let app = Router::new()
+        .route("/api/configs", get(list_configs_handler))
         .route(
-            "/api/config",
+            "/api/config/{filename}",
             get(get_config_handler).post(update_config_handler),
         )
+        .route("/api/config/apply", post(apply_config_handler))
         .fallback(get(static_handler))
         .with_state(shared_state);
 
