@@ -242,7 +242,7 @@ export function Config() {
                   No configuration files found. Upload one to get started.
               </div>
           ) : (
-              <ul className="divide-y divide-zinc-800/50">
+              <ul className="divide-y divide-zinc-800/50 max-h-[60vh] overflow-y-auto custom-scrollbar">
                   {configs.map((filename) => (
                       <li key={filename} className="flex items-center justify-between p-4 hover:bg-zinc-800/30 transition-colors">
                           <div className="flex items-center gap-3">
