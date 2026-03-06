@@ -352,7 +352,7 @@ function SelectorPanel({ selector, allProxies, onSelectProxy }: { selector: Prox
               <button
                 key={outbound}
                 onClick={() => onSelectProxy(selector.name, outbound)}
-                className={`text-left p-3.5 rounded-lg border transition-all truncate focus:outline-none flex flex-col gap-2 group/btn relative overflow-hidden ${
+                className={`text-left p-3.5 rounded-lg border transition-all truncate focus:outline-none flex flex-col gap-4 group/btn relative overflow-hidden ${
                   isActive
                     ? 'bg-blue-500/10 border-blue-500/40 border-l-2 border-l-blue-500 shadow-sm'
                     : 'bg-zinc-950/40 border-zinc-800/60 hover:bg-zinc-800/60 hover:border-zinc-700 hover:-translate-y-[1px]'
