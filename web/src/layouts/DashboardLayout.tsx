@@ -1,92 +1,76 @@
 import { useState, useEffect } from 'react'
-import { NavLink, Outlet } from 'react-router-dom'
-import { LayoutDashboard, Activity, PanelLeftClose, PanelLeftOpen, Settings } from 'lucide-react'
+import { NavLink, Outlet, useLocation } from 'react-router-dom'
 
 export function DashboardLayout() {
   const [isCollapsed, setIsCollapsed] = useState(() => {
     const saved = localStorage.getItem('sidebar-collapsed')
     return saved === 'true'
   })
+  const location = useLocation()
 
   useEffect(() => {
     localStorage.setItem('sidebar-collapsed', String(isCollapsed))
   }, [isCollapsed])
 
   return (
-    <div className="flex h-screen bg-base-100 text-base-content font-sans">
+    <div className="flex h-screen overflow-hidden bg-[#09090b] text-zinc-100 antialiased font-sans">
       {/* Sidebar */}
       <aside
         className={`${
           isCollapsed ? 'w-20' : 'w-64'
-        } bg-base-200 border-r border-base-300 z-10 flex flex-col transition-all duration-300 ease-in-out`}
+        } border-r border-zinc-800/50 flex flex-col bg-zinc-950 transition-all duration-300 ease-in-out shrink-0 z-20`}
       >
-        {/* Brand / Title */}
-        <div className="flex h-16 shrink-0 items-center justify-between px-4 border-b border-base-300">
-          <div className="flex items-center gap-2 font-semibold text-lg tracking-tight overflow-hidden">
-            <Activity className="h-5 w-5 shrink-0 text-primary" />
-            <span
-              className={`whitespace-nowrap transition-all duration-300 ${
-                isCollapsed ? 'opacity-0 w-0' : 'opacity-100 w-auto'
-              }`}
-            >
-              Dashboard
-            </span>
+        <div
+           className="p-6 flex items-center gap-3 cursor-pointer overflow-hidden"
+           onClick={() => setIsCollapsed(!isCollapsed)}
+        >
+          <div className="size-8 rounded-lg bg-blue-600 flex items-center justify-center text-white shadow-lg shadow-blue-600/20 shrink-0">
+            <span className="material-symbols-outlined !text-xl">hub</span>
           </div>
-          <button
-            onClick={() => setIsCollapsed(!isCollapsed)}
-            className="btn btn-ghost btn-square btn-sm"
-            title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
-          >
-            {isCollapsed ? (
-              <PanelLeftOpen className="h-4 w-4" />
-            ) : (
-              <PanelLeftClose className="h-4 w-4" />
-            )}
-          </button>
+          <div className={`flex flex-col whitespace-nowrap transition-all duration-300 ${isCollapsed ? 'opacity-0 w-0' : 'opacity-100 w-auto'}`}>
+            <h1 className="text-sm font-bold tracking-tight text-zinc-100 leading-tight">sing-box</h1>
+            <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-semibold leading-tight">NETWORK CORE</p>
+          </div>
         </div>
 
-        {/* Navigation */}
-        <ul className="menu flex-1 p-3 gap-2 overflow-y-auto overflow-x-hidden">
-          <li>
-            <NavLink
-              to="/"
-              end
-              title="Overview"
-              className={({ isActive }) => `${isActive ? 'active' : ''}`}
-            >
-              <LayoutDashboard className="h-5 w-5 shrink-0" />
-              <span
-                className={`whitespace-nowrap transition-all duration-300 ${
-                  isCollapsed ? 'opacity-0 w-0 hidden' : 'opacity-100 w-auto'
-                }`}
-              >
-                Overview
-              </span>
-            </NavLink>
-          </li>
-          <li>
-            <NavLink
-              to="/config"
-              title="Config"
-              className={({ isActive }) => `${isActive ? 'active' : ''}`}
-            >
-              <Settings className="h-5 w-5 shrink-0" />
-              <span
-                className={`whitespace-nowrap transition-all duration-300 ${
-                  isCollapsed ? 'opacity-0 w-0 hidden' : 'opacity-100 w-auto'
-                }`}
-              >
-                Config
-              </span>
-            </NavLink>
-          </li>
-        </ul>
+        <nav className="flex-1 px-4 space-y-1 overflow-y-auto overflow-x-hidden custom-scrollbar">
+          <NavLink
+            to="/"
+            end
+            className={({ isActive }) => `flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+              isActive ? 'bg-zinc-800 text-white' : 'text-zinc-400 hover:bg-zinc-900/50 hover:text-zinc-100'
+            }`}
+          >
+            <span className="material-symbols-outlined !text-[20px] shrink-0">dashboard</span>
+            <span className={`text-sm font-medium whitespace-nowrap transition-all duration-300 ${isCollapsed ? 'opacity-0 w-0 hidden' : 'opacity-100 w-auto'}`}>Overview</span>
+          </NavLink>
+
+          <NavLink
+            to="/config"
+            className={({ isActive }) => `flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+              isActive ? 'bg-zinc-800 text-white' : 'text-zinc-400 hover:bg-zinc-900/50 hover:text-zinc-100'
+            }`}
+          >
+            <span className="material-symbols-outlined !text-[20px] shrink-0">settings</span>
+            <span className={`text-sm font-medium whitespace-nowrap transition-all duration-300 ${isCollapsed ? 'opacity-0 w-0 hidden' : 'opacity-100 w-auto'}`}>Config</span>
+          </NavLink>
+        </nav>
       </aside>
 
-      {/* Main Content */}
-      <main className="flex-1 overflow-y-auto bg-base-100">
-        <div className="max-w-7xl mx-auto p-8">
-          <Outlet />
+      {/* Main Content Area */}
+      <main className="flex-1 overflow-y-auto relative bg-[#09090b] custom-scrollbar">
+        {/* Top Header */}
+        <header className="sticky top-0 z-10 flex items-center justify-between px-6 py-4 border-b border-zinc-800/50 bg-[#09090b]/80 backdrop-blur-md">
+           <div className="flex items-center gap-2">
+               <span className="text-base font-semibold text-zinc-100">
+                  {location.pathname === '/' ? 'Dashboard Overview' : 'Configuration'}
+               </span>
+           </div>
+        </header>
+
+        {/* Content Container */}
+        <div className="w-full mx-auto px-6 py-6 sm:px-8 lg:px-8 space-y-8">
+            <Outlet />
         </div>
       </main>
     </div>

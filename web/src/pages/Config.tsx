@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
 import Editor from '@monaco-editor/react'
-import { UploadCloud, Save, RefreshCw, FileJson, Play, Edit, X, Plus, Trash2, Share } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface ConfigsResponse {
@@ -513,353 +512,317 @@ export function Config() {
   }
 
   return (
-    <div className="space-y-8 pb-24">
-      <h1 className="text-2xl font-semibold tracking-tight text-base-content">Configuration</h1>
-
-      {/* Configs Card */}
-      <div className="card bg-base-200 shadow-sm border border-base-300">
-          <div className="card-body p-5 border-b border-base-300 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div>
-                  <h2 className="text-lg font-medium text-base-content">Local Configurations</h2>
-                  <p className="text-sm text-base-content/60 mt-1">Manage and select your sing-box configuration files.</p>
-              </div>
-              <div className="flex items-center gap-3">
-                  <button
-                    onClick={() => {
-                        setCreateFileName('')
-                        setIsCreateOpen(true)
-                    }}
-                    className="btn btn-sm btn-outline"
-                    disabled={isLoading || isSaving}
-                  >
-                    <Plus className="h-4 w-4" />
-                    New Config
-                  </button>
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    className="btn btn-sm btn-outline"
-                    disabled={isLoading || isSaving}
-                  >
-                    <UploadCloud className="h-4 w-4" />
-                    Upload
-                  </button>
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    onChange={handleFileSelect}
-                    accept=".json"
-                    className="hidden"
-                  />
-
-              </div>
+    <>
+      <div className="bg-zinc-900/50 border border-zinc-800/50 rounded-xl overflow-hidden shadow-sm">
+        <div className="p-6 flex items-center justify-between border-b border-zinc-800/50">
+          <div>
+            <h2 className="text-sm font-semibold text-white">Local Configurations</h2>
+            <p className="text-xs text-zinc-500 mt-1">Manage and select your sing-box configuration files.</p>
           </div>
-          <div className="bg-base-200">
-              {configs.length === 0 && !isLoading ? (
-                  <div className="p-8 text-center text-base-content/50 text-sm">
-                      No configuration files found. Upload one to get started.
-                  </div>
-              ) : (
-                  <ul className="divide-y divide-zinc-800/50 max-h-[35vh] overflow-y-auto custom-scrollbar">
-                      {sortedConfigs.map((filename) => (
-                          <li key={filename} className="flex items-center justify-between p-4 hover:bg-base-300/50 transition-colors">
-                              <div className="flex items-center gap-3">
-                                  <FileJson className="h-5 w-5 text-primary" />
-                                  <span className="font-medium text-base-content/90">{filename}</span>
-                                  {activeConfig === filename && (
-                                      <span className="badge badge-success badge-sm badge-outline">
-                                          Active
-                                      </span>
-                                  )}
-                              </div>
-                              <div className="flex items-center gap-2">
-                                  <button
-                                      onClick={() => handleApplyConfig(filename)}
-                                      disabled={isLoading || activeConfig === filename}
-                                      className={`btn btn-sm ${
-                                          activeConfig === filename
-                                          ? 'bg-base-300 text-base-content/50 cursor-not-allowed'
-                                          : 'bg-primary/10 text-primary hover:bg-primary/20 border border-indigo-500/20'
-                                       }`}
-                                      title="Apply this configuration"
-                                  >
-                                      <Play className="h-3.5 w-3.5" />
-                                      Apply
-                                  </button>
-                                  <button
-                                      onClick={() => handleOpenEditor(filename)}
-                                      disabled={isLoading}
-                                      className="btn btn-sm btn-outline"
-                                  >
-                                      <Edit className="h-3.5 w-3.5" />
-                                      Edit
-                                  </button>
-                                  <button
-                                      onClick={() => setConfigToDelete(filename)}
-                                      disabled={isLoading}
-                                      className="btn btn-sm btn-square btn-ghost text-base-content/50 hover:text-red-400 hover:bg-base-300 transition-colors"
-                                      title="Delete Configuration"
-                                  >
-                                      <Trash2 className="h-4 w-4" />
-                                  </button>
-                              </div>
-                          </li>
-                      ))}
-                  </ul>
-              )}
+          <div className="flex gap-2">
+            <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isLoading || isSaving}
+                className="px-4 py-2 bg-transparent border border-zinc-800/50 hover:bg-zinc-800/50 text-zinc-300 text-xs font-medium rounded-md flex items-center gap-2 transition-colors disabled:opacity-50"
+            >
+              <span className="material-symbols-outlined !text-[18px]">cloud_upload</span>
+              Upload
+            </button>
+            <button
+                onClick={() => {
+                    setCreateFileName('')
+                    setIsCreateOpen(true)
+                }}
+                disabled={isLoading || isSaving}
+                className="px-4 py-2 bg-primary hover:bg-blue-600 text-white text-xs font-semibold rounded-md flex items-center gap-2 transition-colors shadow-md shadow-primary/10 disabled:opacity-50"
+            >
+              <span className="material-symbols-outlined !text-[18px]">add</span>
+              New Config
+            </button>
+            <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileSelect}
+                accept=".json"
+                className="hidden"
+            />
           </div>
+        </div>
+        <div className="divide-y divide-zinc-800/50 max-h-[35vh] overflow-y-auto custom-scrollbar">
+            {configs.length === 0 && !isLoading ? (
+                <div className="p-8 text-center text-zinc-500 text-sm">
+                    No configuration files found. Upload one to get started.
+                </div>
+            ) : (
+                sortedConfigs.map((filename) => (
+                    <div key={filename} className={`p-4 flex items-center justify-between transition-colors ${activeConfig === filename ? 'bg-zinc-800/20' : 'hover:bg-zinc-800/10'}`}>
+                        <div className="flex items-center gap-4">
+                            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                                <span className="material-symbols-outlined !text-[24px]">description</span>
+                            </div>
+                            <div className="flex flex-col">
+                                <div className="flex items-center gap-2">
+                                    <span className="text-sm font-semibold text-zinc-200">{filename}</span>
+                                    {activeConfig === filename && (
+                                        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                            <span className="text-[10px] font-bold tracking-widest text-emerald-500 uppercase">Active</span>
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="text-xs text-zinc-500 mt-1">Modified recently &bull; -- kb</div>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                            {activeConfig !== filename && (
+                                <button
+                                    onClick={() => handleApplyConfig(filename)}
+                                    disabled={isLoading}
+                                    className="px-3 py-1.5 text-xs font-semibold rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 transition-colors flex items-center gap-1.5"
+                                >
+                                    <span className="material-symbols-outlined !text-[16px]">play_arrow</span> Apply
+                                </button>
+                            )}
+                            <button
+                                onClick={() => handleOpenEditor(filename)}
+                                disabled={isLoading}
+                                className="w-8 h-8 flex items-center justify-center rounded text-zinc-400 hover:text-white hover:bg-zinc-800/80 transition-colors"
+                            >
+                                <span className="material-symbols-outlined !text-[18px]">edit</span>
+                            </button>
+                            <button
+                                onClick={() => setConfigToDelete(filename)}
+                                disabled={isLoading || activeConfig === filename}
+                                className="w-8 h-8 flex items-center justify-center rounded text-zinc-500 hover:text-red-400 hover:bg-zinc-800/80 transition-colors disabled:opacity-30 disabled:hover:bg-transparent"
+                                title={activeConfig === filename ? "Cannot delete active config" : "Delete Configuration"}
+                            >
+                                <span className="material-symbols-outlined !text-[18px]">delete</span>
+                            </button>
+                        </div>
+                    </div>
+                ))
+            )}
+        </div>
       </div>
 
-      {/* Custom Fields Settings Card */}
-      <div className="card bg-base-200 shadow-sm border border-base-300">
-          <div className="card-body p-5 border-b border-base-300 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div>
-                  <h2 className="text-lg font-medium text-base-content">Custom Settings</h2>
-                  <p className="text-sm text-base-content/60 mt-1">Configure remote subscriptions and proxy selectors.</p>
-              </div>
-              <div className="flex items-center gap-2">
-                  <button
-                      onClick={handleOpenMergedConfig}
-                      disabled={isLoading}
-                      className="btn btn-sm btn-outline"
-                  >
-                      <Share className="h-4 w-4" />
-                      Show merged config
-                  </button>
-
-              </div>
+      <div className="bg-zinc-900/50 border border-zinc-800/50 rounded-xl overflow-hidden shadow-sm">
+        <div className="p-6 flex items-center justify-between border-b border-zinc-800/50">
+          <div>
+            <h2 className="text-sm font-semibold text-white">Custom Settings</h2>
+            <p className="text-xs text-zinc-500 mt-1">Configure remote subscriptions and proxy selectors.</p>
           </div>
+          <button
+              onClick={handleOpenMergedConfig}
+              disabled={isLoading}
+              className="w-8 h-8 flex items-center justify-center rounded border border-zinc-800/50 text-zinc-400 hover:text-white hover:bg-zinc-800/50 transition-colors"
+              title="Show merged config"
+          >
+            <span className="material-symbols-outlined !text-[18px]">merge</span>
+          </button>
+        </div>
 
-          <div className="p-5 space-y-8">
-              {/* Subscription URLs Section */}
-              <div className="space-y-4">
-                  <h3 className="text-sm font-medium text-base-content/80">Subscription URLs</h3>
-                  <div className="flex gap-2 items-start">
-                      <div className="flex-1 flex gap-2">
-                          <input
-                              type="text"
-                              value={newUrl}
-                              onChange={(e) => setNewUrl(e.target.value)}
-                              placeholder="https://example.com/subscribe"
-                              className="flex-1 bg-base-100 border border-base-300 rounded-md px-3 py-2 text-sm text-base-content focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500"
-                              onKeyDown={(e) => {
-                                  if (e.key === 'Enter') handleAddUrl()
-                              }}
-                          />
-                          <input
-                              type="text"
-                              value={newPrefix}
-                              onChange={(e) => setNewPrefix(e.target.value)}
-                              placeholder="Prefix (Optional)"
-                              className="w-40 bg-base-100 border border-base-300 rounded-md px-3 py-2 text-sm text-base-content focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500"
-                              onKeyDown={(e) => {
-                                  if (e.key === 'Enter') handleAddUrl()
-                              }}
-                          />
-                      </div>
-                      <button
-                          onClick={handleAddUrl}
-                          disabled={!newUrl.trim() || isAddingUrl}
-                          className="flex items-center justify-center gap-2 px-4 py-2 h-[38px] text-sm font-medium bg-base-300 text-base-content rounded-md hover:bg-base-300/80 active:scale-95 transition-all shadow-sm disabled:opacity-50 whitespace-nowrap"
-                      >
-                          {isAddingUrl ? (
-                              <RefreshCw className="h-4 w-4 animate-spin" />
-                          ) : (
-                              <Plus className="h-4 w-4" />
-                          )}
-                          Add URL
-                      </button>
-                  </div>
-
-                  {subscriptions.length === 0 ? (
-                      <div className="text-sm text-base-content/50 text-center py-4 bg-base-100/50 rounded-md border border-base-300">
-                          No subscription URLs added yet.
-                      </div>
-                  ) : (
-                      <ul className="space-y-2">
-                          {subscriptions.map((sub, idx) => (
-                              <li key={idx} className="flex flex-col bg-base-100 border border-zinc-800 rounded-md px-3 py-2 text-sm">
-                                  <div className="flex items-center justify-between">
-                                      <div className="flex items-center gap-3 truncate mr-4">
-                                          <span className="text-base-content/80 truncate">{sub.url}</span>
-                                          {sub.prefix && (
-                                              <span className="badge badge-sm badge-outline text-xs opacity-70 whitespace-nowrap shrink-0">
-                                                  Prefix: {sub.prefix}
-                                              </span>
-                                          )}
-                                      </div>
-                                      <div className="flex items-center gap-2 shrink-0">
-                                          <button
-                                              onClick={() => handleUpdateSubscription(idx)}
-                                              type="button"
-                                              disabled={updatingIndex === idx}
-                                              className="text-base-content/50 hover:text-primary transition-colors shrink-0 p-1.5 rounded-md hover:bg-base-300 disabled:opacity-50"
-                                              title="Update Subscription"
-                                          >
-                                              <RefreshCw className={`h-4 w-4 ${updatingIndex === idx ? 'animate-spin' : ''}`} />
-                                          </button>
-                                          <button
-                                              onClick={() => handleRemoveUrl(idx)}
-                                              className="text-base-content/50 hover:text-red-400 transition-colors shrink-0 p-1.5 rounded-md hover:bg-base-300"
-                                              title="Remove URL"
-                                          >
-                                              <Trash2 className="h-4 w-4" />
-                                          </button>
-                                      </div>
-                                  </div>
-                                  <div className="text-xs text-base-content/50 mt-1">
-                                      Last fetched: {sub.last_fetched ? new Date(sub.last_fetched).toLocaleString() : 'Never'}
-                                  </div>
-                              </li>
-                          ))}
-                      </ul>
-                  )}
-              </div>
-
-              <div className="h-px bg-base-300 w-full" />
-
-              {/* Selectors Section */}
-              <div className="space-y-4">
-                  <h3 className="text-sm font-medium text-base-content/80">Selectors</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-end bg-base-100 p-4 rounded-lg border border-zinc-800">
-                      <div className="space-y-1 lg:col-span-1">
-                          <label className="text-xs font-medium text-base-content/60">Name</label>
-                          <input
-                              type="text"
-                              value={newSelector.name}
-                              onChange={(e) => setNewSelector({...newSelector, name: e.target.value})}
-                              placeholder="e.g. US Nodes"
-                              className="w-full bg-base-200 border border-base-300 rounded-md px-3 py-2 text-sm text-base-content focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500"
-                          />
-                      </div>
-                      <div className="space-y-1 lg:col-span-1">
-                          <label className="text-xs font-medium text-base-content/60">Regex</label>
-                          <input
-                              type="text"
-                              value={newSelector.regex}
-                              onChange={(e) => setNewSelector({...newSelector, regex: e.target.value})}
-                              placeholder="e.g. .*US.*"
-                              className="w-full bg-base-200 border border-base-300 rounded-md px-3 py-2 text-sm text-base-content focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500"
-                          />
-                      </div>
-                      <div className="space-y-1 lg:col-span-1">
-                          <label className="text-xs font-medium text-base-content/60">Default (Optional)</label>
-                          <input
-                              type="text"
-                              value={newSelector.default}
-                              onChange={(e) => setNewSelector({...newSelector, default: e.target.value})}
-                              placeholder="Fallback tag"
-                              className="w-full bg-base-200 border border-base-300 rounded-md px-3 py-2 text-sm text-base-content focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500"
-                          />
-                      </div>
-                      <div className="space-y-1 lg:col-span-1 flex items-center h-full justify-center">
-                          <label className="flex items-center gap-2 cursor-pointer mb-0">
-                              <input
-                                  type="checkbox"
-                                  checked={newSelector.interrupt_exist_connections}
-                                  onChange={(e) => setNewSelector({...newSelector, interrupt_exist_connections: e.target.checked})}
-                                  className="w-4 h-4 rounded border-base-300 bg-base-200 text-primary focus:ring-indigo-500/50 focus:ring-offset-0"
-                              />
-                              <span className="text-xs font-medium text-base-content/60 select-none">Interrupt connections</span>
-                          </label>
-                      </div>
-                      <div className="lg:col-span-1">
+        <div className="p-6 space-y-10">
+          <div>
+            <h3 className="text-xs font-bold text-zinc-500 tracking-widest uppercase mb-4">Subscription URLs</h3>
+            <div className="flex items-center gap-4 mb-6">
+              <input
+                  type="text"
+                  value={newUrl}
+                  onChange={(e) => setNewUrl(e.target.value)}
+                  placeholder="https://example.com/premium-subscription-nodes-full"
+                  className="flex-1 bg-[#09090b] border border-zinc-800 rounded-md px-4 py-2.5 text-sm text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors"
+                  onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleAddUrl()
+                  }}
+              />
+              <input
+                  type="text"
+                  value={newPrefix}
+                  onChange={(e) => setNewPrefix(e.target.value)}
+                  placeholder="Prefix (e.g. US)"
+                  className="w-40 bg-[#09090b] border border-zinc-800 rounded-md px-4 py-2.5 text-sm text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors"
+                  onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleAddUrl()
+                  }}
+              />
+              <button
+                  onClick={handleAddUrl}
+                  disabled={!newUrl.trim() || isAddingUrl}
+                  className="px-6 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-white text-sm font-semibold rounded-md transition-colors shadow-sm disabled:opacity-50 whitespace-nowrap"
+              >
+                  {isAddingUrl ? 'Adding...' : 'Add'}
+              </button>
+            </div>
+            {subscriptions.length === 0 ? (
+                <div className="text-sm text-zinc-600 text-center py-6 bg-zinc-950/30 rounded-lg border border-zinc-800/30">
+                    No subscriptions added.
+                </div>
+            ) : (
+                <div className="space-y-3">
+                  {subscriptions.map((sub, idx) => (
+                      <div key={idx} className="flex items-center justify-between p-4 bg-[#09090b]/50 border border-zinc-800/50 rounded-lg group">
+                        <div className="flex items-center gap-4">
+                          <div className="w-8 h-8 rounded bg-zinc-800/50 flex items-center justify-center text-zinc-400">
+                            <span className="material-symbols-outlined !text-[18px]">link</span>
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-sm font-medium text-zinc-200">{sub.url}</span>
+                              {sub.prefix && (
+                                  <span className="px-1.5 py-0.5 rounded bg-primary/20 text-primary text-[10px] font-bold tracking-widest uppercase border border-primary/20">
+                                      {sub.prefix}
+                                  </span>
+                              )}
+                            </div>
+                            <div className="text-[10px] text-zinc-500">
+                              Last fetched: {sub.last_fetched ? 'Just now' : 'Never'} <span className="mx-1">•</span> Status: <span className="text-emerald-500">Success</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button
-                              onClick={handleAddSelector}
-                              className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium bg-base-300 text-base-content rounded-md hover:bg-base-300/80 active:scale-95 transition-all shadow-sm"
+                              onClick={() => handleUpdateSubscription(idx)}
+                              disabled={updatingIndex === idx}
+                              className="w-8 h-8 flex items-center justify-center rounded text-zinc-400 hover:text-white hover:bg-zinc-800/80 transition-colors disabled:opacity-50"
+                              title="Update Subscription"
                           >
-                              <Plus className="h-4 w-4" />
-                              Add
+                            <span className={`material-symbols-outlined !text-[18px] ${updatingIndex === idx ? 'animate-spin' : ''}`}>sync</span>
                           </button>
+                          <button
+                              onClick={() => handleRemoveUrl(idx)}
+                              className="w-8 h-8 flex items-center justify-center rounded text-zinc-500 hover:text-red-400 hover:bg-zinc-800/80 transition-colors"
+                              title="Remove URL"
+                          >
+                            <span className="material-symbols-outlined !text-[18px]">delete</span>
+                          </button>
+                        </div>
                       </div>
-                  </div>
-
-                  {selectors.length === 0 ? (
-                      <div className="text-sm text-base-content/50 text-center py-4 bg-base-100/50 rounded-md border border-base-300">
-                          No selectors added yet.
-                      </div>
-                  ) : (
-                      <div className="overflow-x-auto rounded-md border border-zinc-800">
-                          <table className="w-full text-sm text-left">
-                              <thead className="text-xs text-base-content/60 bg-base-100 border-b border-zinc-800">
-                                  <tr>
-                                      <th className="px-4 py-3 font-medium">Name</th>
-                                      <th className="px-4 py-3 font-medium">Regex</th>
-                                      <th className="px-4 py-3 font-medium">Default</th>
-                                      <th className="px-4 py-3 font-medium text-center">Interrupt</th>
-                                      <th className="px-4 py-3 font-medium text-right">Actions</th>
-                                  </tr>
-                              </thead>
-                              <tbody className="divide-y divide-zinc-800/50 bg-base-200/50">
-                                  {selectors.map((sel, idx) => (
-                                      <tr key={idx} className="hover:bg-base-300/50 transition-colors">
-                                          <td className="px-4 py-2.5 text-base-content/90">{sel.name}</td>
-                                          <td className="px-4 py-2.5 text-base-content/60 font-mono text-xs">{sel.regex}</td>
-                                          <td className="px-4 py-2.5 text-base-content/60">{sel.default || '-'}</td>
-                                          <td className="px-4 py-2.5 text-center">
-                                              {sel.interrupt_exist_connections ? (
-                                                  <span className="text-emerald-400 font-medium">Yes</span>
-                                              ) : (
-                                                  <span className="text-base-content/50">No</span>
-                                              )}
-                                          </td>
-                                          <td className="px-4 py-2.5 text-right">
-                                              <button
-                                                  onClick={() => handleRemoveSelector(idx)}
-                                                  className="text-base-content/50 hover:text-red-400 transition-colors p-1.5 rounded-md hover:bg-base-300"
-                                                  title="Remove Selector"
-                                              >
-                                                  <Trash2 className="h-4 w-4" />
-                                              </button>
-                                          </td>
-                                      </tr>
-                                  ))}
-                              </tbody>
-                          </table>
-                      </div>
-                  )}
-              </div>
+                  ))}
+                </div>
+            )}
           </div>
+
+          <div>
+            <h3 className="text-xs font-bold text-zinc-500 tracking-widest uppercase mb-4">Selectors</h3>
+            <div className="flex items-center gap-4 mb-6">
+              <input
+                  type="text"
+                  value={newSelector.name}
+                  onChange={(e) => setNewSelector({...newSelector, name: e.target.value})}
+                  placeholder="e.g. Auto"
+                  className="flex-1 bg-[#09090b] border border-zinc-800 rounded-md px-4 py-2.5 text-sm text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors"
+              />
+              <input
+                  type="text"
+                  value={newSelector.regex}
+                  onChange={(e) => setNewSelector({...newSelector, regex: e.target.value})}
+                  placeholder=".*"
+                  className="flex-1 bg-[#09090b] border border-zinc-800 rounded-md px-4 py-2.5 text-sm text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+              />
+              <input
+                  type="text"
+                  value={newSelector.default}
+                  onChange={(e) => setNewSelector({...newSelector, default: e.target.value})}
+                  placeholder="Default outbound"
+                  className="flex-1 bg-[#09090b] border border-zinc-800 rounded-md px-4 py-2.5 text-sm text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors"
+              />
+              <div className="flex items-center gap-2 px-4 py-2.5 bg-[#09090b] border border-zinc-800 rounded-md">
+                <input
+                    type="checkbox"
+                    checked={newSelector.interrupt_exist_connections}
+                    onChange={(e) => setNewSelector({...newSelector, interrupt_exist_connections: e.target.checked})}
+                    className="size-3.5 bg-zinc-800 border-zinc-700 rounded text-primary focus:ring-0 focus:ring-offset-0"
+                />
+                <span className="text-xs font-medium text-zinc-400">Interrupt</span>
+              </div>
+              <button
+                  onClick={handleAddSelector}
+                  className="px-6 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-white text-sm font-semibold rounded-md transition-colors shadow-sm"
+              >
+                  Add Selector
+              </button>
+            </div>
+
+            {selectors.length === 0 ? (
+                <div className="text-sm text-zinc-600 text-center py-6 bg-zinc-950/30 rounded-lg border border-zinc-800/30">
+                    No selectors configured.
+                </div>
+            ) : (
+                <div className="w-full">
+                  <div className="grid grid-cols-12 gap-4 pb-3 border-b border-zinc-800/50 text-[10px] font-bold text-zinc-500 uppercase tracking-widest px-4">
+                    <div className="col-span-3">Name</div>
+                    <div className="col-span-3">Regex</div>
+                    <div className="col-span-3">Default</div>
+                    <div className="col-span-2">Int</div>
+                    <div className="col-span-1 text-right">Actions</div>
+                  </div>
+                  <div className="divide-y divide-zinc-800/30">
+                    {selectors.map((sel, idx) => (
+                        <div key={idx} className="grid grid-cols-12 gap-4 items-center py-4 px-4 hover:bg-zinc-800/10 transition-colors group">
+                          <div className="col-span-3 text-sm font-semibold text-zinc-200">{sel.name}</div>
+                          <div className="col-span-3 text-xs text-zinc-400 font-mono">{sel.regex}</div>
+                          <div className="col-span-3 text-xs text-zinc-400">{sel.default || '-'}</div>
+                          <div className="col-span-2">
+                              {sel.interrupt_exist_connections ? (
+                                  <span className="text-xs font-semibold text-emerald-500">Yes</span>
+                              ) : (
+                                  <span className="text-xs font-medium text-zinc-600">No</span>
+                              )}
+                          </div>
+                          <div className="col-span-1 text-right">
+                            <button
+                                onClick={() => handleRemoveSelector(idx)}
+                                className="text-zinc-500 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
+                                title="Remove Selector"
+                            >
+                                <span className="material-symbols-outlined !text-[18px]">delete</span>
+                            </button>
+                          </div>
+                        </div>
+                    ))}
+                  </div>
+                </div>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Upload Name Modal */}
       {isUploadOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-              <div className="bg-base-100 border border-zinc-800 rounded-lg shadow-2xl w-full max-w-md overflow-hidden">
-                  <div className="p-4 border-b border-base-300 flex justify-between items-center">
-                      <h3 className="text-lg font-medium text-base-content">Upload Configuration</h3>
-                      <button onClick={() => setIsUploadOpen(false)} className="text-base-content/60 hover:text-base-content">
-                          <X className="h-5 w-5" />
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+              <div className="bg-[#0c0c0e] border border-zinc-800 rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                  <div className="p-5 border-b border-zinc-800 flex justify-between items-center bg-zinc-900/50">
+                      <h3 className="text-base font-semibold text-white">Upload Configuration</h3>
+                      <button onClick={() => setIsUploadOpen(false)} className="text-zinc-500 hover:text-white transition-colors">
+                          <span className="material-symbols-outlined !text-[20px]">close</span>
                       </button>
                   </div>
-                  <div className="p-4 space-y-4">
-                      <div>
-                          <label htmlFor="filename" className="block text-sm font-medium text-base-content/60 mb-1">
-                              Save file as:
-                          </label>
-                          <input
-                              type="text"
-                              id="filename"
-                              value={uploadFileName}
-                              onChange={(e) => setUploadFileName(e.target.value)}
-                              className="w-full bg-base-200 border border-base-300 rounded-md px-3 py-2 text-sm text-base-content focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500"
-                              autoFocus
-                          />
-                      </div>
+                  <div className="p-6">
+                      <label htmlFor="filename" className="block text-xs font-bold text-zinc-500 uppercase tracking-widest mb-2">
+                          Save file as
+                      </label>
+                      <input
+                          type="text"
+                          id="filename"
+                          value={uploadFileName}
+                          onChange={(e) => setUploadFileName(e.target.value)}
+                          className="w-full bg-[#121214] border border-zinc-800 rounded-lg px-4 py-2 text-sm text-zinc-200 focus:outline-none focus:border-zinc-600 focus:ring-1 focus:ring-zinc-600 transition-all"
+                          autoFocus
+                      />
                   </div>
-                  <div className="p-4 bg-base-200 border-t border-base-300 flex justify-end gap-2">
+                  <div className="p-4 border-t border-zinc-800 flex justify-end gap-3 bg-zinc-900/50">
                       <button
                           onClick={() => setIsUploadOpen(false)}
-                          className="px-4 py-2 text-sm font-medium text-base-content/60 hover:text-base-content transition-colors"
+                          className="px-4 py-2 text-sm font-medium text-zinc-400 hover:text-white transition-colors"
                       >
                           Cancel
                       </button>
                       <button
                           onClick={handleUploadSubmit}
                           disabled={isSaving}
-                          className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-primary text-white rounded-md hover:bg-primary-focus transition-colors shadow-sm disabled:opacity-50"
+                          className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm disabled:opacity-50"
                       >
-                          {isSaving && <RefreshCw className="h-4 w-4 animate-spin" />}
-                          Save Upload
+                          {isSaving ? 'Uploading...' : 'Upload File'}
                       </button>
                   </div>
               </div>
@@ -869,23 +832,23 @@ export function Config() {
 
       {/* Delete Confirmation Modal */}
       {configToDelete && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-              <div className="bg-base-100 border border-zinc-800 rounded-lg shadow-2xl w-full max-w-sm overflow-hidden">
-                  <div className="p-4 border-b border-base-300">
-                      <h3 className="text-lg font-medium text-red-500 flex items-center gap-2">
-                          <Trash2 className="h-5 w-5" />
-                          Delete Configuration
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+              <div className="bg-[#0c0c0e] border border-zinc-800 rounded-xl shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                  <div className="p-6 space-y-4">
+                      <div className="w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center mb-4">
+                          <span className="material-symbols-outlined !text-[24px] text-red-500">delete</span>
+                      </div>
+                      <h3 className="text-lg font-semibold text-white">
+                          Delete Configuration?
                       </h3>
-                  </div>
-                  <div className="p-4 space-y-4">
-                      <p className="text-sm text-base-content/80">
-                          Are you sure you want to delete <strong className="text-base-content font-mono">{configToDelete}</strong>? This action cannot be undone.
+                      <p className="text-sm text-zinc-400">
+                          Are you sure you want to delete <strong className="text-zinc-200 font-mono">{configToDelete}</strong>? This action cannot be undone.
                       </p>
                   </div>
-                  <div className="p-4 bg-base-200 border-t border-base-300 flex justify-end gap-2">
+                  <div className="p-4 border-t border-zinc-800 flex justify-end gap-3 bg-zinc-900/50">
                       <button
                           onClick={() => setConfigToDelete(null)}
-                          className="px-4 py-2 text-sm font-medium text-base-content/60 hover:text-base-content transition-colors"
+                          className="px-4 py-2 text-sm font-medium text-zinc-400 hover:text-white transition-colors"
                           disabled={isSaving}
                       >
                           Cancel
@@ -893,10 +856,9 @@ export function Config() {
                       <button
                           onClick={handleDeleteConfig}
                           disabled={isSaving}
-                          className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-red-500/10 text-red-500 hover:bg-red-500/20 border border-red-500/20 rounded-md transition-colors shadow-sm disabled:opacity-50"
+                          className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors shadow-sm disabled:opacity-50"
                       >
-                          {isSaving && <RefreshCw className="h-4 w-4 animate-spin" />}
-                          Delete
+                          {isSaving ? 'Deleting...' : 'Delete Config'}
                       </button>
                   </div>
               </div>
@@ -905,72 +867,66 @@ export function Config() {
 
       {/* Create Name Modal */}
       {isCreateOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-              <div className="bg-base-100 border border-zinc-800 rounded-lg shadow-2xl w-full max-w-md overflow-hidden">
-                  <div className="p-4 border-b border-base-300 flex justify-between items-center">
-                      <h3 className="text-lg font-medium text-base-content">Create Configuration</h3>
-                      <button onClick={() => setIsCreateOpen(false)} className="text-base-content/60 hover:text-base-content">
-                          <X className="h-5 w-5" />
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+              <div className="bg-[#0c0c0e] border border-zinc-800 rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                  <div className="p-5 border-b border-zinc-800 flex justify-between items-center bg-zinc-900/50">
+                      <h3 className="text-base font-semibold text-white">Create Configuration</h3>
+                      <button onClick={() => setIsCreateOpen(false)} className="text-zinc-500 hover:text-white transition-colors">
+                          <span className="material-symbols-outlined !text-[20px]">close</span>
                       </button>
                   </div>
-                  <div className="p-4 space-y-4">
-                      <div>
-                          <label htmlFor="createFileName" className="block text-sm font-medium text-base-content/60 mb-1">
-                              New filename:
-                          </label>
-                          <input
-                              type="text"
-                              id="createFileName"
-                              value={createFileName}
-                              onChange={(e) => setCreateFileName(e.target.value)}
-                              className="w-full bg-base-200 border border-base-300 rounded-md px-3 py-2 text-sm text-base-content focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500"
-                              placeholder="e.g., custom-config.json"
-                              autoFocus
-                          />
-                      </div>
+                  <div className="p-6">
+                      <label htmlFor="createFileName" className="block text-xs font-bold text-zinc-500 uppercase tracking-widest mb-2">
+                          New filename
+                      </label>
+                      <input
+                          type="text"
+                          id="createFileName"
+                          value={createFileName}
+                          onChange={(e) => setCreateFileName(e.target.value)}
+                          className="w-full bg-[#121214] border border-zinc-800 rounded-lg px-4 py-2 text-sm text-zinc-200 focus:outline-none focus:border-zinc-600 focus:ring-1 focus:ring-zinc-600 transition-all"
+                          placeholder="e.g., custom-config.json"
+                          autoFocus
+                      />
                   </div>
-                  <div className="p-4 bg-base-200 border-t border-base-300 flex justify-end gap-2">
+                  <div className="p-4 border-t border-zinc-800 flex justify-end gap-3 bg-zinc-900/50">
                       <button
                           onClick={() => setIsCreateOpen(false)}
-                          className="px-4 py-2 text-sm font-medium text-base-content/60 hover:text-base-content transition-colors"
+                          className="px-4 py-2 text-sm font-medium text-zinc-400 hover:text-white transition-colors"
                       >
                           Cancel
                       </button>
                       <button
                           onClick={handleCreateSubmit}
                           disabled={isSaving}
-                          className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-primary text-white rounded-md hover:bg-primary-focus transition-colors shadow-sm disabled:opacity-50"
+                          className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm disabled:opacity-50"
                       >
-                          {isSaving && <RefreshCw className="h-4 w-4 animate-spin" />}
-                          Create
+                          {isSaving ? 'Creating...' : 'Create File'}
                       </button>
                   </div>
               </div>
           </div>
       )}
 
-
       {/* Merged Config Editor Modal */}
       {isMergedEditorOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-6">
-              <div className="flex flex-col w-full max-w-5xl h-full max-h-[90vh] bg-[#1e1e1e] border border-base-300 shadow-2xl rounded-lg overflow-hidden">
-                  <div className="flex items-center justify-between p-3 border-b border-base-300 bg-[#252526]">
-                      <div className="text-sm font-medium text-base-content/80 flex items-center gap-2">
-                          <FileJson className="h-4 w-4 text-primary" />
-                          <span className="text-base-content">Merged Configuration (Read-only)</span>
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-6">
+              <div className="flex flex-col w-full max-w-5xl h-full max-h-[90vh] bg-[#0c0c0e] border border-zinc-800 shadow-2xl rounded-xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                  <div className="flex items-center justify-between p-4 border-b border-zinc-800 bg-zinc-900/50">
+                      <div className="flex items-center gap-3">
+                          <span className="material-symbols-outlined !text-[20px] text-zinc-400">data_object</span>
+                          <h3 className="text-base font-medium text-white">Merged Configuration (Read-only)</h3>
                       </div>
-                      <div className="flex items-center gap-2">
-                          <button
-                              onClick={() => setIsMergedEditorOpen(false)}
-                              className="btn btn-sm btn-square btn-ghost"
-                              title="Close"
-                          >
-                              <X className="h-4 w-4" />
-                          </button>
-                      </div>
+                      <button
+                          onClick={() => setIsMergedEditorOpen(false)}
+                          className="p-2 rounded text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
+                          title="Close"
+                      >
+                          <span className="material-symbols-outlined !text-[20px]">close</span>
+                      </button>
                   </div>
 
-                  <div className="flex-1 relative">
+                  <div className="flex-1 relative bg-[#1e1e1e]">
                       <Editor
                           height="100%"
                           defaultLanguage="json"
@@ -981,7 +937,7 @@ export function Config() {
                               fontSize: 14,
                               wordWrap: 'on',
                               scrollBeyondLastLine: false,
-                              padding: { top: 16, bottom: 16 },
+                              padding: { top: 24, bottom: 24 },
                               readOnly: true,
                           }}
                       />
@@ -992,32 +948,29 @@ export function Config() {
 
       {/* Editor Modal */}
       {isEditorOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-6">
-              <div className="flex flex-col w-full max-w-5xl h-full max-h-[90vh] bg-[#1e1e1e] border border-base-300 shadow-2xl rounded-lg overflow-hidden">
-                  <div className="flex items-center justify-between p-3 border-b border-base-300 bg-[#252526]">
-                      <div className="text-sm font-medium text-base-content/80 flex items-center gap-2">
-                          <Edit className="h-4 w-4 text-base-content/50" />
-                          Editing: <span className="text-base-content">{editingFileName}</span>
-                          {hasEditorChanges && <span className="text-primary ml-2 text-xs normal-case">(Unsaved changes)</span>}
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-6">
+              <div className="flex flex-col w-full max-w-5xl h-full max-h-[90vh] bg-[#0c0c0e] border border-zinc-800 shadow-2xl rounded-xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                  <div className="flex items-center justify-between p-4 border-b border-zinc-800 bg-zinc-900/50">
+                      <div className="flex items-center gap-3">
+                          <span className="material-symbols-outlined !text-[20px] text-zinc-400">edit</span>
+                          <div className="flex items-baseline gap-3">
+                            <h3 className="text-base font-medium text-white">{editingFileName}</h3>
+                            {hasEditorChanges && <span className="text-xs font-medium text-amber-500 normal-case">(Unsaved changes)</span>}
+                          </div>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-4">
                           <button
                               onClick={handleSaveEditor}
                               disabled={!hasEditorChanges || isSaving}
-                              className={`flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md transition-colors shadow-sm ${
+                              className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all shadow-sm ${
                                   hasEditorChanges
-                                      ? 'bg-primary text-white hover:bg-primary-focus disabled:opacity-50'
-                                      : 'bg-base-300 text-base-content/50 cursor-not-allowed'
+                                      ? 'bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50'
+                                      : 'bg-zinc-800 text-zinc-500 cursor-not-allowed'
                               }`}
                           >
-                              {isSaving ? (
-                                  <RefreshCw className="h-4 w-4 animate-spin" />
-                              ) : (
-                                  <Save className="h-4 w-4" />
-                              )}
-                              Save Changes
+                              {isSaving ? 'Saving...' : 'Save Changes'}
                           </button>
-                          <div className="w-px h-5 border-base-300 mx-1"></div>
+                          <div className="w-px h-6 bg-zinc-800"></div>
                           <button
                               onClick={() => {
                                   if (hasEditorChanges) {
@@ -1028,15 +981,15 @@ export function Config() {
                                       setIsEditorOpen(false)
                                   }
                               }}
-                              className="btn btn-sm btn-square btn-ghost"
+                              className="p-2 rounded text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
                               title="Close Editor"
                           >
-                              <X className="h-4 w-4" />
+                              <span className="material-symbols-outlined !text-[20px]">close</span>
                           </button>
                       </div>
                   </div>
 
-                  <div className="flex-1 relative">
+                  <div className="flex-1 relative bg-[#1e1e1e]">
                       <Editor
                           height="100%"
                           defaultLanguage="json"
@@ -1048,7 +1001,7 @@ export function Config() {
                               fontSize: 14,
                               wordWrap: 'on',
                               scrollBeyondLastLine: false,
-                              padding: { top: 16, bottom: 16 },
+                              padding: { top: 24, bottom: 24 },
                               formatOnPaste: true,
                               formatOnType: true,
                           }}
@@ -1057,6 +1010,6 @@ export function Config() {
               </div>
           </div>
       )}
-    </div>
+    </>
   )
 }
