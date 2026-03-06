@@ -17,15 +17,17 @@ pub struct Asset;
 pub struct CustomFieldsRequest {
     pub subscriptions: Vec<Subscription>,
     pub selectors: Vec<Selector>,
+    pub external_controller: String,
 }
 
 pub async fn get_custom_fields_handler(State(state): State<AppState>) -> Response {
-    let (urls, selectors) = state.get_custom_fields().await;
+    let (urls, selectors, external_controller) = state.get_custom_fields().await;
     (
         StatusCode::OK,
         Json(CustomFieldsRequest {
             subscriptions: urls,
             selectors,
+            external_controller,
         }),
     )
         .into_response()
@@ -36,7 +38,11 @@ pub async fn update_custom_fields_handler(
     Json(payload): Json<CustomFieldsRequest>,
 ) -> Response {
     match state
-        .set_custom_fields(payload.subscriptions, payload.selectors)
+        .set_custom_fields(
+            payload.subscriptions,
+            payload.selectors,
+            payload.external_controller,
+        )
         .await
     {
         Ok(_) => {
@@ -405,7 +411,7 @@ pub async fn update_subscription_handler(
     State(state): State<AppState>,
     Path(index): Path<usize>,
 ) -> Response {
-    let (subs, _) = state.get_custom_fields().await;
+    let (subs, _, _) = state.get_custom_fields().await;
     if index >= subs.len() {
         return (StatusCode::BAD_REQUEST, "Invalid subscription index").into_response();
     }

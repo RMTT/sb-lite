@@ -3,6 +3,10 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
+pub fn default_external_controller() -> String {
+    "127.0.0.1:9091".to_string()
+}
+
 #[derive(Clone)]
 pub struct AppState {
     pub state_directory: PathBuf,
@@ -28,13 +32,27 @@ pub struct Selector {
     pub interrupt_exist_connections: bool,
 }
 
-#[derive(Serialize, Deserialize, Default, Clone)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct PersistedState {
     pub active_config: Option<String>,
     pub subscriptions: Vec<Subscription>,
     pub selectors: Vec<Selector>,
     #[serde(default)]
     pub auto_start: bool,
+    #[serde(default = "default_external_controller")]
+    pub external_controller: String,
+}
+
+impl Default for PersistedState {
+    fn default() -> Self {
+        Self {
+            active_config: None,
+            subscriptions: vec![],
+            selectors: vec![],
+            auto_start: false,
+            external_controller: default_external_controller(),
+        }
+    }
 }
 
 impl AppState {
@@ -57,19 +75,25 @@ impl AppState {
             .map_err(|e| e.to_string())
     }
 
-    pub async fn get_custom_fields(&self) -> (Vec<Subscription>, Vec<Selector>) {
+    pub async fn get_custom_fields(&self) -> (Vec<Subscription>, Vec<Selector>, String) {
         let state = self.persisted_state.read().await;
-        (state.subscriptions.clone(), state.selectors.clone())
+        (
+            state.subscriptions.clone(),
+            state.selectors.clone(),
+            state.external_controller.clone(),
+        )
     }
 
     pub async fn set_custom_fields(
         &self,
         subscriptions: Vec<Subscription>,
         selectors: Vec<Selector>,
+        external_controller: String,
     ) -> Result<(), String> {
         let mut state = self.persisted_state.write().await;
         state.subscriptions = subscriptions;
         state.selectors = selectors;
+        state.external_controller = external_controller;
 
         let bytes = bincode::serialize(&*state).map_err(|e| e.to_string())?;
         tokio::fs::write(self.state_file_path(), bytes)
