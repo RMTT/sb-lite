@@ -80,10 +80,63 @@ async fn main() {
 
     let shared_state = AppState {
         state_directory: args.state_directory.clone(),
-        persisted_state: Arc::new(RwLock::new(persisted_state)),
+        persisted_state: Arc::new(RwLock::new(persisted_state.clone())),
         sing_box_path,
         sing_box_process: Arc::new(tokio::sync::Mutex::new(None)),
     };
+
+    if persisted_state.auto_start {
+        info!("Auto-start is enabled. Attempting to start sing-box...");
+
+        // Ensure merged config exists
+        match crate::merge::generate_and_write_active_config(&shared_state).await {
+            Ok(_) => {
+                let tmp_path = std::path::PathBuf::from("/tmp/sing-box-lite-active.json");
+
+                match tokio::process::Command::new(&shared_state.sing_box_path)
+                    .arg("check")
+                    .arg("-c")
+                    .arg(&tmp_path)
+                    .output()
+                    .await
+                {
+                    Ok(output) if output.status.success() => {
+                        match tokio::process::Command::new(&shared_state.sing_box_path)
+                            .arg("run")
+                            .arg("-c")
+                            .arg(&tmp_path)
+                            .arg("-D")
+                            .arg(&shared_state.state_directory)
+                            .stdout(std::process::Stdio::null())
+                            .stderr(std::process::Stdio::null())
+                            .spawn()
+                        {
+                            Ok(child) => {
+                                let mut process_lock = shared_state.sing_box_process.lock().await;
+                                *process_lock = Some(child);
+                                info!("sing-box auto-started successfully on boot.");
+                            }
+                            Err(e) => {
+                                error!("Failed to auto-start sing-box: {}", e);
+                            }
+                        }
+                    }
+                    Ok(output) => {
+                        error!(
+                            "Config check failed on auto-start: {}",
+                            String::from_utf8_lossy(&output.stderr)
+                        );
+                    }
+                    Err(e) => {
+                        error!("Failed to run config check on auto-start: {}", e);
+                    }
+                }
+            }
+            Err(e) => {
+                error!("Failed to generate active config on auto-start: {}", e);
+            }
+        }
+    }
 
     let app = router::create_router(shared_state);
 

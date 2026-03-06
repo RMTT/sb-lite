@@ -516,6 +516,7 @@ pub async fn update_subscription_handler(
 pub struct SingBoxStatusResponse {
     pub version: Option<String>,
     pub is_running: bool,
+    pub auto_start: bool,
 }
 
 pub async fn get_sing_box_status_handler(State(state): State<AppState>) -> Response {
@@ -547,11 +548,14 @@ pub async fn get_sing_box_status_handler(State(state): State<AppState>) -> Respo
         }
     }
 
+    let auto_start = state.get_auto_start().await;
+
     (
         StatusCode::OK,
         Json(SingBoxStatusResponse {
             version,
             is_running,
+            auto_start,
         }),
     )
         .into_response()
@@ -641,5 +645,26 @@ pub async fn stop_sing_box_handler(State(state): State<AppState>) -> Response {
         (StatusCode::OK, "sing-box stopped").into_response()
     } else {
         (StatusCode::BAD_REQUEST, "sing-box is not running").into_response()
+    }
+}
+
+#[derive(Deserialize)]
+pub struct AutoStartRequest {
+    pub enabled: bool,
+}
+
+pub async fn toggle_auto_start_handler(
+    State(state): State<AppState>,
+    Json(payload): Json<AutoStartRequest>,
+) -> Response {
+    match state.set_auto_start(payload.enabled).await {
+        Ok(_) => {
+            info!("Auto start set to {}", payload.enabled);
+            (StatusCode::OK, "Auto start updated").into_response()
+        }
+        Err(e) => {
+            error!("Failed to save state: {}", e);
+            (StatusCode::INTERNAL_SERVER_ERROR, "Failed to save state").into_response()
+        }
     }
 }

@@ -3,8 +3,10 @@ import { toast } from 'sonner'
 
 export function Overview() {
 
+
   const [isRunning, setIsRunning] = useState(false)
   const [version, setVersion] = useState<string | null>(null)
+  const [autoStart, setAutoStart] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
 
   const fetchStatus = async () => {
@@ -14,6 +16,7 @@ export function Overview() {
         const data = await res.json()
         setIsRunning(data.is_running)
         setVersion(data.version)
+        setAutoStart(data.auto_start)
       }
     } catch {
       console.error('Failed to fetch status')
@@ -21,6 +24,26 @@ export function Overview() {
       setIsLoading(false)
     }
   }
+
+  const handleToggleAutoStart = async () => {
+      const newAutoStart = !autoStart
+      try {
+          const res = await fetch('/api/sing-box/autostart', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ enabled: newAutoStart })
+          })
+          if (res.ok) {
+              setAutoStart(newAutoStart)
+              toast.success(`Auto Start on Boot ${newAutoStart ? 'enabled' : 'disabled'}`)
+          } else {
+              toast.error('Failed to update Auto Start settings')
+          }
+      } catch {
+          toast.error('Failed to update Auto Start settings')
+      }
+  }
+
 
   useEffect(() => {
     fetchStatus()
@@ -74,8 +97,12 @@ export function Overview() {
             </div>
             <div className="flex items-center gap-3 bg-zinc-950/50 px-4 py-2 rounded-lg border border-zinc-800/50">
               <span className="text-sm font-medium text-zinc-400">Auto Start on Boot</span>
-              <button className="w-10 h-6 rounded-full bg-blue-600 relative transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-zinc-900">
-                <div className="absolute top-1 left-5 bg-white size-4 rounded-full shadow transition-transform"></div>
+              <button
+                onClick={handleToggleAutoStart}
+                disabled={isLoading}
+                className={`w-10 h-6 rounded-full relative transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-zinc-900 disabled:opacity-50 ${autoStart ? 'bg-blue-600' : 'bg-zinc-700'}`}
+              >
+                <div className={`absolute top-1 bg-white size-4 rounded-full shadow transition-transform ${autoStart ? 'translate-x-5' : 'translate-x-1'}`}></div>
               </button>
             </div>
           </div>

@@ -33,6 +33,8 @@ pub struct PersistedState {
     pub active_config: Option<String>,
     pub subscriptions: Vec<Subscription>,
     pub selectors: Vec<Selector>,
+    #[serde(default)]
+    pub auto_start: bool,
 }
 
 impl AppState {
@@ -87,6 +89,21 @@ impl AppState {
         } else {
             return Err("Subscription index out of bounds".to_string());
         }
+
+        let bytes = bincode::serialize(&*state).map_err(|e| e.to_string())?;
+        tokio::fs::write(self.state_file_path(), bytes)
+            .await
+            .map_err(|e| e.to_string())
+    }
+
+    pub async fn get_auto_start(&self) -> bool {
+        let state = self.persisted_state.read().await;
+        state.auto_start
+    }
+
+    pub async fn set_auto_start(&self, enabled: bool) -> Result<(), String> {
+        let mut state = self.persisted_state.write().await;
+        state.auto_start = enabled;
 
         let bytes = bincode::serialize(&*state).map_err(|e| e.to_string())?;
         tokio::fs::write(self.state_file_path(), bytes)
