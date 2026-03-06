@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Square, Play, Router, Clock, Cpu, Download, Upload } from 'lucide-react'
+import { Square, Play, Router, Clock, Cpu, Download, Upload, ChevronDown } from 'lucide-react'
 import { toast } from 'sonner'
 
 function formatBytes(bytes: number) {
@@ -32,6 +32,13 @@ function formatUptime(startTime: string | null) {
   return parts.slice(0, 2).join(' ')
 }
 
+type ProxyNode = {
+  type: string
+  name: string
+  now?: string
+  all?: string[]
+}
+
 export function Overview() {
   const [isRunning, setIsRunning] = useState(false)
   const [version, setVersion] = useState<string | null>(null)
@@ -42,6 +49,7 @@ export function Overview() {
   const [downloadTotal, setDownloadTotal] = useState(0)
   const [uploadTotal, setUploadTotal] = useState(0)
   const [memory, setMemory] = useState(0)
+  const [proxies, setProxies] = useState<Record<string, ProxyNode>>({})
 
   const [uptimeStr, setUptimeStr] = useState('0s')
 
@@ -84,6 +92,20 @@ export function Overview() {
     }
   }
 
+  const fetchProxies = async () => {
+    try {
+      const res = await fetch('/api/sing-box/proxies')
+      if (res.ok) {
+        const data = await res.json()
+        if (data && data.proxies) {
+           setProxies(data.proxies)
+        }
+      }
+    } catch {
+      console.error('Failed to fetch proxies')
+    }
+  }
+
   const handleToggleAutoStart = async () => {
       const newAutoStart = !autoStart
       try {
@@ -103,12 +125,41 @@ export function Overview() {
       }
   }
 
+  const handleSelectProxy = async (selectorName: string, proxyName: string) => {
+    try {
+      // Optimistic update
+      setProxies(prev => ({
+        ...prev,
+        [selectorName]: {
+          ...prev[selectorName],
+          now: proxyName
+        }
+      }))
+
+      const res = await fetch(`/api/sing-box/proxies/${encodeURIComponent(selectorName)}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: proxyName })
+      })
+
+      if (!res.ok) {
+        toast.error(`Failed to change proxy for ${selectorName}`)
+        fetchProxies() // Revert on failure
+      }
+    } catch {
+      toast.error('Failed to update proxy')
+      fetchProxies()
+    }
+  }
+
   useEffect(() => {
     fetchStatus()
     fetchConnections()
+    fetchProxies()
     const interval = setInterval(() => {
       fetchStatus()
       fetchConnections()
+      fetchProxies()
     }, 2000)
     return () => clearInterval(interval)
   }, [])
@@ -143,8 +194,10 @@ export function Overview() {
     }
   }
 
+  const selectors = Object.values(proxies).filter(p => p.type === 'Selector' || p.type === 'URLTest' || p.type === 'Fallback')
+
   return (
-    <>
+    <div className="flex flex-col gap-6">
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
         {/* Main Control Panel */}
         <div className="bg-zinc-900/50 border border-zinc-800/50 rounded-xl overflow-hidden shadow-sm flex flex-col justify-between">
@@ -240,6 +293,46 @@ export function Overview() {
           </div>
         </div>
       </div>
-    </>
+
+      {isRunning && selectors.length > 0 && (
+        <div className="flex flex-col gap-3">
+          {selectors.map((selector) => (
+            <details key={selector.name} className="group bg-zinc-900/50 border border-zinc-800/50 rounded-xl shadow-sm overflow-hidden" open={false}>
+              <summary className="flex items-center justify-between p-4 cursor-pointer hover:bg-zinc-800/30 transition-colors select-none list-none [&::-webkit-details-marker]:hidden">
+                <div className="flex items-center gap-3">
+                  <span className="text-sm font-semibold text-zinc-200">{selector.name}</span>
+                  <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-zinc-800 text-zinc-400 uppercase">{selector.type}</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-blue-400">{selector.now}</span>
+                  <ChevronDown className="w-4 h-4 text-zinc-500 group-open:-rotate-180 transition-transform duration-200" />
+                </div>
+              </summary>
+              <div className="p-4 pt-0 border-t border-zinc-800/50">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 mt-4">
+                  {selector.all?.map((outbound) => {
+                    const isActive = selector.now === outbound;
+                    return (
+                      <button
+                        key={outbound}
+                        onClick={() => handleSelectProxy(selector.name, outbound)}
+                        className={`text-left p-3 rounded-lg border transition-all text-sm truncate focus:outline-none ${
+                          isActive
+                            ? 'bg-blue-500/10 border-blue-500/50 text-blue-400 font-medium'
+                            : 'bg-zinc-950/50 border-zinc-800/50 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-300'
+                        }`}
+                        title={outbound}
+                      >
+                        {outbound}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            </details>
+          ))}
+        </div>
+      )}
+    </div>
   )
 }

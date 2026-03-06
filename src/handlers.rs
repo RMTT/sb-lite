@@ -632,3 +632,76 @@ pub async fn get_connections_handler(State(state): State<AppState>) -> Response 
         }
     }
 }
+
+pub async fn get_proxies_handler(State(state): State<AppState>) -> Response {
+    let (_, _, external_controller) = state.get_custom_fields().await;
+    let url = format!("http://{}/proxies", external_controller);
+
+    let client = reqwest::Client::new();
+    match client.get(&url).send().await {
+        Ok(resp) => {
+            let status = resp.status();
+            if status.is_success() {
+                if let Ok(text) = resp.text().await {
+                    return (
+                        StatusCode::OK,
+                        [(axum::http::header::CONTENT_TYPE, "application/json")],
+                        text,
+                    )
+                        .into_response();
+                }
+            }
+            (
+                StatusCode::BAD_GATEWAY,
+                format!("Failed to fetch proxies: HTTP {}", status),
+            )
+                .into_response()
+        }
+        Err(e) => {
+            error!("Failed to fetch proxies: {}", e);
+            (
+                StatusCode::BAD_GATEWAY,
+                format!("Failed to fetch proxies: {}", e),
+            )
+                .into_response()
+        }
+    }
+}
+
+#[derive(Deserialize)]
+#[derive(Serialize)]
+pub struct UpdateProxyRequest {
+    pub name: String,
+}
+
+pub async fn update_proxy_handler(
+    State(state): State<AppState>,
+    Path(selector_name): Path<String>,
+    Json(payload): Json<UpdateProxyRequest>,
+) -> Response {
+    let (_, _, external_controller) = state.get_custom_fields().await;
+    let url = format!("http://{}/proxies/{}", external_controller, selector_name);
+
+    let client = reqwest::Client::new();
+    match client.put(&url).json(&payload).send().await {
+        Ok(resp) => {
+            let status = resp.status();
+            if status.is_success() {
+                return (StatusCode::NO_CONTENT).into_response();
+            }
+            (
+                StatusCode::BAD_GATEWAY,
+                format!("Failed to update proxy: HTTP {}", status),
+            )
+                .into_response()
+        }
+        Err(e) => {
+            error!("Failed to update proxy {}: {}", selector_name, e);
+            (
+                StatusCode::BAD_GATEWAY,
+                format!("Failed to update proxy: {}", e),
+            )
+                .into_response()
+        }
+    }
+}
