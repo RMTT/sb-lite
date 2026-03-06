@@ -53,6 +53,40 @@ export function Overview() {
 
   const [uptimeStr, setUptimeStr] = useState('0s')
 
+  const [latencies, setLatencies] = useState<Record<string, { value: number, error: boolean, testing: boolean }>>(() => {
+    const saved = localStorage.getItem('singbox_lite_proxy_latencies')
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved)
+        const clean: Record<string, { value: number, error: boolean, testing: boolean }> = {}
+        for (const key in parsed) {
+          clean[key] = { ...parsed[key], testing: false }
+        }
+        return clean
+      } catch {
+        return {}
+      }
+    }
+    return {}
+  })
+
+  useEffect(() => {
+    localStorage.setItem('singbox_lite_proxy_latencies', JSON.stringify(latencies))
+  }, [latencies])
+
+  const handleTestLatency = async (proxyName: string) => {
+    setLatencies(prev => ({ ...prev, [proxyName]: { value: 0, error: false, testing: true } }))
+    try {
+      const res = await fetch(`/api/sing-box/proxies/${encodeURIComponent(proxyName)}/delay?url=http://www.gstatic.com/generate_204&timeout=5000`)
+      if (!res.ok) throw new Error('Latency test failed')
+      const data = await res.json()
+      setLatencies(prev => ({ ...prev, [proxyName]: { value: data.delay || 0, error: false, testing: false } }))
+    } catch {
+      setLatencies(prev => ({ ...prev, [proxyName]: { value: 0, error: true, testing: false } }))
+    }
+  }
+
+
   useEffect(() => {
     const timer = setInterval(() => {
       setUptimeStr(formatUptime(startTime))
@@ -302,6 +336,8 @@ export function Overview() {
               selector={selector}
               allProxies={proxies}
               onSelectProxy={handleSelectProxy}
+              latencies={latencies}
+              onTestLatency={handleTestLatency}
             />
           ))}
         </div>
@@ -310,7 +346,19 @@ export function Overview() {
   )
 }
 
-function SelectorPanel({ selector, allProxies, onSelectProxy }: { selector: ProxyNode, allProxies: Record<string, ProxyNode>, onSelectProxy: (selectorName: string, proxyName: string) => void }) {
+function SelectorPanel({
+  selector,
+  allProxies,
+  onSelectProxy,
+  latencies,
+  onTestLatency
+}: {
+  selector: ProxyNode,
+  allProxies: Record<string, ProxyNode>,
+  onSelectProxy: (selectorName: string, proxyName: string) => void,
+  latencies: Record<string, { value: number, error: boolean, testing: boolean }>,
+  onTestLatency: (proxyName: string) => void
+}) {
   const storageKey = `singbox_lite_selector_${selector.name}_open`
 
   const [isOpen, setIsOpen] = useState(() => {
@@ -318,25 +366,15 @@ function SelectorPanel({ selector, allProxies, onSelectProxy }: { selector: Prox
     return saved === 'true'
   })
 
-  const [latencies, setLatencies] = useState<Record<string, { value: number, error: boolean, testing: boolean }>>({})
-
   const handleToggle = (e: React.SyntheticEvent<HTMLDetailsElement>) => {
     const newState = e.currentTarget.open
     setIsOpen(newState)
     localStorage.setItem(storageKey, String(newState))
   }
 
-  const handleTestLatency = async (e: React.MouseEvent, proxyName: string) => {
+  const handleLocalTestLatency = (e: React.MouseEvent, proxyName: string) => {
     e.stopPropagation()
-    setLatencies(prev => ({ ...prev, [proxyName]: { value: 0, error: false, testing: true } }))
-    try {
-      const res = await fetch(`/api/sing-box/proxies/${encodeURIComponent(proxyName)}/delay?url=http://www.gstatic.com/generate_204&timeout=5000`)
-      if (!res.ok) throw new Error('Latency test failed')
-      const data = await res.json()
-      setLatencies(prev => ({ ...prev, [proxyName]: { value: data.delay || 0, error: false, testing: false } }))
-    } catch {
-      setLatencies(prev => ({ ...prev, [proxyName]: { value: 0, error: true, testing: false } }))
-    }
+    onTestLatency(proxyName)
   }
 
   return (
@@ -363,8 +401,6 @@ function SelectorPanel({ selector, allProxies, onSelectProxy }: { selector: Prox
           {selector.all?.map((outbound) => {
             const isActive = selector.now === outbound;
             const outboundType = allProxies[outbound]?.type || 'Unknown';
-            const latencyData = latencies[outbound];
-
             return (
               <button
                 key={outbound}
@@ -387,12 +423,12 @@ function SelectorPanel({ selector, allProxies, onSelectProxy }: { selector: Prox
                   </span>
 
                   <button
-                    onClick={(e) => handleTestLatency(e, outbound)}
-                    disabled={latencyData?.testing}
-                    className={`shrink-0 p-1 rounded hover:bg-zinc-800/80 transition-colors ${latencyData?.testing ? 'opacity-50 cursor-wait' : ''} ${isActive ? 'text-blue-400 hover:text-blue-300' : 'text-zinc-500 hover:text-zinc-300'}`}
+                    onClick={(e) => handleLocalTestLatency(e, outbound)}
+                    disabled={latencies[outbound]?.testing}
+                    className={`shrink-0 p-1 rounded hover:bg-zinc-800/80 transition-colors ${latencies[outbound]?.testing ? 'opacity-50 cursor-wait' : ''} ${isActive ? 'text-blue-400 hover:text-blue-300' : 'text-zinc-500 hover:text-zinc-300'}`}
                     title="Test Latency"
                   >
-                    <Zap className={`w-3.5 h-3.5 ${latencyData?.testing ? 'animate-pulse' : ''}`} />
+                    <Zap className={`w-3.5 h-3.5 ${latencies[outbound]?.testing ? 'animate-pulse' : ''}`} />
                   </button>
                 </div>
 
@@ -404,17 +440,17 @@ function SelectorPanel({ selector, allProxies, onSelectProxy }: { selector: Prox
                      </span>
                   </div>
 
-                  {latencyData && !latencyData.testing && (
+                  {latencies[outbound] && !latencies[outbound].testing && (
                     <span className={`text-[10px] font-mono font-medium px-1.5 py-0.5 rounded ${
-                      latencyData.error
+                      latencies[outbound].error
                         ? 'bg-red-500/10 text-red-400 border border-red-500/20'
-                        : latencyData.value < 200
+                        : latencies[outbound].value < 200
                           ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                          : latencyData.value < 500
+                          : latencies[outbound].value < 500
                             ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
                             : 'bg-orange-500/10 text-orange-400 border border-orange-500/20'
                     }`}>
-                      {latencyData.error ? 'Error' : `${latencyData.value}ms`}
+                      {latencies[outbound].error ? 'Error' : `${latencies[outbound].value}ms`}
                     </span>
                   )}
                 </div>
