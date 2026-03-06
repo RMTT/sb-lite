@@ -202,8 +202,8 @@ export function Overview() {
         </div>
 
         {/* Statistics Grid */}
-        <div className="grid grid-cols-2 gap-6 content-start">
-          <div className="bg-zinc-900/50 border border-zinc-800/50 rounded-xl p-6 shadow-sm flex flex-col justify-center h-[160px]">
+        <div className="grid grid-cols-2 gap-6 h-full">
+          <div className="bg-zinc-900/50 border border-zinc-800/50 rounded-xl p-6 shadow-sm flex flex-col justify-center h-full">
             <div className="flex justify-between items-start mb-4">
               <span className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase">UPTIME</span>
               <Clock className="w-4 h-4 text-blue-500" />
@@ -212,7 +212,7 @@ export function Overview() {
               <span className="text-2xl font-bold tracking-tight text-white">{isRunning ? uptimeStr : '0s'}</span>
             </div>
           </div>
-          <div className="bg-zinc-900/50 border border-zinc-800/50 rounded-xl p-6 shadow-sm flex flex-col justify-center h-[160px]">
+          <div className="bg-zinc-900/50 border border-zinc-800/50 rounded-xl p-6 shadow-sm flex flex-col justify-center h-full">
             <div className="flex justify-between items-start mb-4">
               <span className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase">MEMORY</span>
               <Cpu className="w-4 h-4 text-blue-500" />
@@ -221,7 +221,7 @@ export function Overview() {
               <span className="text-2xl font-bold tracking-tight text-white">{isRunning ? formatBytes(memory) : '0 Bytes'}</span>
             </div>
           </div>
-          <div className="bg-zinc-900/50 border border-zinc-800/50 rounded-xl p-6 shadow-sm flex flex-col justify-center h-[160px]">
+          <div className="bg-zinc-900/50 border border-zinc-800/50 rounded-xl p-6 shadow-sm flex flex-col justify-center h-full">
             <div className="flex justify-between items-start mb-4">
               <span className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase">DOWNLOAD</span>
               <Download className="w-4 h-4 text-blue-500" />
@@ -230,7 +230,7 @@ export function Overview() {
               <span className="text-2xl font-bold tracking-tight text-white">{isRunning ? formatBytes(downloadTotal) : '0 Bytes'}</span>
             </div>
           </div>
-          <div className="bg-zinc-900/50 border border-zinc-800/50 rounded-xl p-6 shadow-sm flex flex-col justify-center h-[160px]">
+          <div className="bg-zinc-900/50 border border-zinc-800/50 rounded-xl p-6 shadow-sm flex flex-col justify-center h-full">
             <div className="flex justify-between items-start mb-4">
               <span className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase">UPLOAD</span>
               <Upload className="w-4 h-4 text-blue-500" />
