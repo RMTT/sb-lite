@@ -313,6 +313,8 @@ pub async fn apply_config_handler(
         .arg(&tmp_path)
         .arg("-D")
         .arg(&state.state_directory)
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
         .spawn()
     {
         Ok(child) => {
@@ -603,6 +605,8 @@ pub async fn start_sing_box_handler(State(state): State<AppState>) -> Response {
         .arg(&tmp_path)
         .arg("-D")
         .arg(&state.state_directory)
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
         .spawn()
     {
         Ok(child) => {
