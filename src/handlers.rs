@@ -270,62 +270,20 @@ pub async fn apply_config_handler(
             .into_response();
     }
 
-    let tmp_path = std::path::PathBuf::from("/tmp/sing-box-lite-active.json");
-    match tokio::process::Command::new(&state.sing_box_path)
-        .arg("check")
-        .arg("-c")
-        .arg(&tmp_path)
-        .output()
-        .await
-    {
-        Ok(output) if !output.status.success() => {
-            let err_msg = String::from_utf8_lossy(&output.stderr);
-            return (
-                StatusCode::BAD_REQUEST,
-                format!("Config check failed: {}", err_msg),
-            )
-                .into_response();
+    let is_running = {
+        let mut process_lock = state.sing_box_process.lock().await;
+        if let Some(child) = process_lock.as_mut() {
+            child.try_wait().map_or(false, |status| status.is_none())
+        } else {
+            false
         }
-        Err(e) => {
+    };
+
+    if !is_running {
+        if let Err(e) = state.restart_sing_box(false).await {
             return (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                format!("Failed to run config check: {}", e),
-            )
-                .into_response();
-        }
-        _ => {}
-    }
-
-    let mut process_lock = state.sing_box_process.lock().await;
-
-    // If it's running, kill it
-    if let Some(mut child) = process_lock.take() {
-        if let Ok(None) = child.try_wait() {
-            let _ = child.kill().await;
-            let _ = child.wait().await;
-        }
-    }
-
-    // Start it
-    match tokio::process::Command::new(&state.sing_box_path)
-        .arg("run")
-        .arg("-c")
-        .arg(&tmp_path)
-        .arg("-D")
-        .arg(&state.state_directory)
-        .stdout(std::process::Stdio::null())
-        .stderr(std::process::Stdio::null())
-        .spawn()
-    {
-        Ok(child) => {
-            *process_lock = Some(child);
-            info!("sing-box started successfully");
-        }
-        Err(e) => {
-            error!("Failed to start sing-box: {}", e);
-            return (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                format!("Failed to start sing-box: {}", e),
+                format!("Config applied but failed to start sing-box: {}", e),
             )
                 .into_response();
         }
@@ -562,69 +520,14 @@ pub async fn get_sing_box_status_handler(State(state): State<AppState>) -> Respo
 }
 
 pub async fn start_sing_box_handler(State(state): State<AppState>) -> Response {
-    let tmp_path = std::path::PathBuf::from("/tmp/sing-box-lite-active.json");
-    if !tmp_path.exists() {
-        return (StatusCode::BAD_REQUEST, "Merged config not found").into_response();
-    }
-
-    // Check config
-    match tokio::process::Command::new(&state.sing_box_path)
-        .arg("check")
-        .arg("-c")
-        .arg(&tmp_path)
-        .output()
-        .await
-    {
-        Ok(output) if !output.status.success() => {
-            let err_msg = String::from_utf8_lossy(&output.stderr);
-            return (
-                StatusCode::BAD_REQUEST,
-                format!("Config check failed: {}", err_msg),
-            )
-                .into_response();
-        }
+    match state.restart_sing_box(false).await {
+        Ok(_) => (StatusCode::OK, "sing-box started").into_response(),
         Err(e) => {
-            return (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                format!("Failed to run config check: {}", e),
-            )
-                .into_response();
-        }
-        _ => {}
-    }
-
-    let mut process_lock = state.sing_box_process.lock().await;
-
-    // Check if already running
-    if let Some(child) = process_lock.as_mut() {
-        if let Ok(None) = child.try_wait() {
-            return (StatusCode::BAD_REQUEST, "sing-box is already running").into_response();
-        }
-    }
-
-    // Start it
-    match tokio::process::Command::new(&state.sing_box_path)
-        .arg("run")
-        .arg("-c")
-        .arg(&tmp_path)
-        .arg("-D")
-        .arg(&state.state_directory)
-        .stdout(std::process::Stdio::null())
-        .stderr(std::process::Stdio::null())
-        .spawn()
-    {
-        Ok(child) => {
-            *process_lock = Some(child);
-            info!("sing-box started successfully");
-            (StatusCode::OK, "sing-box started").into_response()
-        }
-        Err(e) => {
-            error!("Failed to start sing-box: {}", e);
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                format!("Failed to start sing-box: {}", e),
-            )
-                .into_response()
+            if e == "sing-box is already running" {
+                (StatusCode::BAD_REQUEST, e).into_response()
+            } else {
+                (StatusCode::INTERNAL_SERVER_ERROR, e).into_response()
+            }
         }
     }
 }

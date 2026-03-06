@@ -110,4 +110,73 @@ impl AppState {
             .await
             .map_err(|e| e.to_string())
     }
+
+    pub async fn check_config(&self) -> Result<(), String> {
+        let tmp_path = std::path::PathBuf::from("/tmp/sing-box-lite-active.json");
+        if !tmp_path.exists() {
+            return Err("Merged config not found".to_string());
+        }
+
+        match tokio::process::Command::new(&self.sing_box_path)
+            .arg("check")
+            .arg("-c")
+            .arg(&tmp_path)
+            .output()
+            .await
+        {
+            Ok(output) if output.status.success() => Ok(()),
+            Ok(output) => {
+                let err_msg = String::from_utf8_lossy(&output.stderr);
+                Err(format!("Invalid config: {}", err_msg))
+            }
+            Err(e) => Err(format!("Failed to execute config check: {}", e)),
+        }
+    }
+
+    pub async fn restart_sing_box(&self, force_restart: bool) -> Result<(), String> {
+        self.check_config().await?;
+
+        let mut process_lock = self.sing_box_process.lock().await;
+
+        let is_running = if let Some(child) = process_lock.as_mut() {
+            child.try_wait().map_or(false, |status| status.is_none())
+        } else {
+            false
+        };
+
+        if is_running {
+            if !force_restart {
+                return Err("sing-box is already running".to_string());
+            }
+
+            // Kill existing process
+            if let Some(mut child) = process_lock.take() {
+                let _ = child.kill().await;
+                let _ = child.wait().await;
+            }
+        }
+
+        let tmp_path = std::path::PathBuf::from("/tmp/sing-box-lite-active.json");
+        match tokio::process::Command::new(&self.sing_box_path)
+            .arg("run")
+            .arg("-c")
+            .arg(&tmp_path)
+            .arg("-D")
+            .arg(&self.state_directory)
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .spawn()
+        {
+            Ok(child) => {
+                *process_lock = Some(child);
+                log::info!("sing-box process started/restarted successfully");
+                Ok(())
+            }
+            Err(e) => {
+                let err_msg = format!("Failed to spawn sing-box process: {}", e);
+                log::error!("{}", err_msg);
+                Err(err_msg)
+            }
+        }
+    }
 }
