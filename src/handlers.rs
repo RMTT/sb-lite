@@ -668,8 +668,7 @@ pub async fn get_proxies_handler(State(state): State<AppState>) -> Response {
     }
 }
 
-#[derive(Deserialize)]
-#[derive(Serialize)]
+#[derive(Deserialize, Serialize)]
 pub struct UpdateProxyRequest {
     pub name: String,
 }
@@ -706,7 +705,6 @@ pub async fn update_proxy_handler(
     }
 }
 
-
 use axum::extract::Query;
 
 #[derive(serde::Deserialize)]
@@ -720,19 +718,7 @@ pub async fn get_proxy_delay_handler(
     Path(proxy_name): Path<String>,
     Query(query): Query<ProxyDelayQuery>,
 ) -> Response {
-    let controller_address = {
-        let state_guard = state.persisted_state.read().await;
-        state_guard.external_controller.clone()
-    };
-
-    if controller_address.is_empty() {
-        return (
-            StatusCode::SERVICE_UNAVAILABLE,
-            axum::Json(serde_json::json!({
-                "error": "sing-box API is not configured or running."
-            })),
-        ).into_response();
-    }
+    let (_, _, external_controller) = state.get_custom_fields().await;
 
     let mut query_params = vec![];
     if let Some(url) = query.url {
@@ -748,7 +734,10 @@ pub async fn get_proxy_delay_handler(
         format!("?{}", query_params.join("&"))
     };
 
-    let url = format!("http://{}/proxies/{}/delay{}", controller_address, proxy_name, query_string);
+    let url = format!(
+        "http://{}/proxies/{}/delay{}",
+        external_controller, proxy_name, query_string
+    );
     let client = reqwest::Client::new();
     match client.get(&url).send().await {
         Ok(res) => {
@@ -760,7 +749,8 @@ pub async fn get_proxy_delay_handler(
                     (
                         StatusCode::INTERNAL_SERVER_ERROR,
                         axum::Json(serde_json::json!({ "error": e.to_string() })),
-                    ).into_response()
+                    )
+                        .into_response()
                 }
             }
         }
@@ -769,7 +759,8 @@ pub async fn get_proxy_delay_handler(
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 axum::Json(serde_json::json!({ "error": e.to_string() })),
-            ).into_response()
+            )
+                .into_response()
         }
     }
 }
