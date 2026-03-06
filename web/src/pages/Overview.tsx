@@ -295,44 +295,71 @@ export function Overview() {
       </div>
 
       {isRunning && selectors.length > 0 && (
-        <div className="flex flex-col gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start pb-8">
           {selectors.map((selector) => (
-            <details key={selector.name} className="group bg-zinc-900/50 border border-zinc-800/50 rounded-xl shadow-sm overflow-hidden" open={false}>
-              <summary className="flex items-center justify-between p-4 cursor-pointer hover:bg-zinc-800/30 transition-colors select-none list-none [&::-webkit-details-marker]:hidden">
-                <div className="flex items-center gap-3">
-                  <span className="text-sm font-semibold text-zinc-200">{selector.name}</span>
-                  <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-zinc-800 text-zinc-400 uppercase">{selector.type}</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="text-xs text-blue-400">{selector.now}</span>
-                  <ChevronDown className="w-4 h-4 text-zinc-500 group-open:-rotate-180 transition-transform duration-200" />
-                </div>
-              </summary>
-              <div className="p-4 pt-0 border-t border-zinc-800/50">
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 mt-4">
-                  {selector.all?.map((outbound) => {
-                    const isActive = selector.now === outbound;
-                    return (
-                      <button
-                        key={outbound}
-                        onClick={() => handleSelectProxy(selector.name, outbound)}
-                        className={`text-left p-3 rounded-lg border transition-all text-sm truncate focus:outline-none ${
-                          isActive
-                            ? 'bg-blue-500/10 border-blue-500/50 text-blue-400 font-medium'
-                            : 'bg-zinc-950/50 border-zinc-800/50 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-300'
-                        }`}
-                        title={outbound}
-                      >
-                        {outbound}
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-            </details>
+            <SelectorPanel
+              key={selector.name}
+              selector={selector}
+              onSelectProxy={handleSelectProxy}
+            />
           ))}
         </div>
       )}
     </div>
+  )
+}
+
+function SelectorPanel({ selector, onSelectProxy }: { selector: ProxyNode, onSelectProxy: (selectorName: string, proxyName: string) => void }) {
+  const storageKey = `singbox_lite_selector_${selector.name}_open`
+
+  const [isOpen, setIsOpen] = useState(() => {
+    const saved = localStorage.getItem(storageKey)
+    return saved === 'true'
+  })
+
+  const handleToggle = (e: React.SyntheticEvent<HTMLDetailsElement>) => {
+    const newState = e.currentTarget.open
+    setIsOpen(newState)
+    localStorage.setItem(storageKey, String(newState))
+  }
+
+  return (
+    <details
+      className="group bg-zinc-900/50 border border-zinc-800/50 rounded-xl shadow-sm overflow-hidden"
+      open={isOpen}
+      onToggle={handleToggle}
+    >
+      <summary className="flex items-center justify-between p-4 cursor-pointer hover:bg-zinc-800/30 transition-colors select-none list-none [&::-webkit-details-marker]:hidden">
+        <div className="flex items-center gap-3">
+          <span className="text-sm font-semibold text-zinc-200">{selector.name}</span>
+          <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-zinc-800 text-zinc-400 uppercase">{selector.type}</span>
+        </div>
+        <div className="flex items-center gap-3">
+          <span className="text-xs text-blue-400">{selector.now}</span>
+          <ChevronDown className="w-4 h-4 text-zinc-500 group-open:-rotate-180 transition-transform duration-200" />
+        </div>
+      </summary>
+      <div className="p-4 pt-0 border-t border-zinc-800/50">
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 mt-4">
+          {selector.all?.map((outbound) => {
+            const isActive = selector.now === outbound;
+            return (
+              <button
+                key={outbound}
+                onClick={() => onSelectProxy(selector.name, outbound)}
+                className={`text-left p-3 rounded-lg border transition-all text-sm truncate focus:outline-none ${
+                  isActive
+                    ? 'bg-blue-500/10 border-blue-500/50 text-blue-400 font-medium'
+                    : 'bg-zinc-950/50 border-zinc-800/50 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-300'
+                }`}
+                title={outbound}
+              >
+                {outbound}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+    </details>
   )
 }
