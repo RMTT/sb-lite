@@ -194,6 +194,7 @@ pub async fn update_config_handler(
             info!("Config file updated at {:?}", config_path);
 
             // If the updated config is the active one, regenerate the merged config
+
             if let Some(active) = state.get_active_config().await {
                 if active == safe_name {
                     if let Err(e) = crate::merge::generate_and_write_active_config(&state).await {
@@ -201,6 +202,7 @@ pub async fn update_config_handler(
                             "Failed to generate and write active config after update: {}",
                             e
                         );
+                        return (StatusCode::BAD_REQUEST, e).into_response();
                     }
                 }
             }

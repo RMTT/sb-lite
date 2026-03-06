@@ -151,6 +151,7 @@ export function Config() {
         throw new Error('Invalid JSON format. Please fix errors before saving.')
       }
 
+
       const response = await fetch(`/api/config/${editingFileName}`, {
         method: 'POST',
         headers: {
@@ -164,8 +165,14 @@ export function Config() {
         setOriginalContent(configContent)
         setIsEditorOpen(false)
       } else {
-        throw new Error(`Failed to save config: ${response.statusText}`)
+        let msg = response.statusText
+        try {
+            const errorText = await response.text()
+            if (errorText) msg = errorText
+        } catch { /* ignore */ }
+        throw new Error(`Failed to save config: ${msg}`)
       }
+
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'An error occurred while saving.')
     } finally {
