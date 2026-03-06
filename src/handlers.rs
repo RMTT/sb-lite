@@ -227,9 +227,11 @@ pub struct Sip008Data {
 pub struct Sip008Server {
     pub server: String,
     pub server_port: u16,
+    pub method: String,
     pub password: Option<String>,
-    pub method: Option<String>,
     pub remarks: Option<String>,
+    pub plugin: Option<String>,
+    pub plugin_opts: Option<String>,
 }
 
 #[derive(Deserialize)]

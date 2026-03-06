@@ -53,7 +53,7 @@ pub async fn generate_and_write_active_config(state: &AppState) -> Result<(), St
 
                         if let Some(prefix) = &sub.prefix {
                             if !prefix.is_empty() {
-                                tag = format!("{} {}", prefix, tag);
+                                tag = format!("{}{}", prefix, tag);
                             }
                         }
 
@@ -62,7 +62,9 @@ pub async fn generate_and_write_active_config(state: &AppState) -> Result<(), St
                             "tag": tag.clone(),
                             "server": server.server,
                             "server_port": server.server_port,
-                            "method": server.method.unwrap_or_else(|| "chacha20-ietf-poly1305".to_string()),
+                            "method": server.method,
+                            "plugin": server.plugin.unwrap_or_else(|| "".to_string()),
+                            "plugin_opts": server.plugin_opts.unwrap_or_else(|| "".to_string())
                         });
 
                         if let Some(password) = server.password {
