@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Square, Play, Router, Clock, Cpu, Download, Upload, ChevronDown } from 'lucide-react'
+import { Square, Play, Router, Clock, Cpu, Download, Upload, ChevronDown, Activity, Globe } from 'lucide-react'
 import { toast } from 'sonner'
 
 function formatBytes(bytes: number) {
@@ -326,22 +326,25 @@ function SelectorPanel({ selector, allProxies, onSelectProxy }: { selector: Prox
 
   return (
     <details
-      className="group bg-zinc-900/50 border border-zinc-800/50 rounded-xl shadow-sm overflow-hidden"
+      className="group bg-zinc-900/40 border border-zinc-800/50 rounded-xl shadow-sm overflow-hidden transition-all duration-200"
       open={isOpen}
       onToggle={handleToggle}
     >
-      <summary className="flex items-center justify-between p-4 cursor-pointer hover:bg-zinc-800/30 transition-colors select-none list-none [&::-webkit-details-marker]:hidden">
+      <summary className="flex items-center justify-between p-4 cursor-pointer hover:bg-zinc-800/30 transition-colors select-none list-none [&::-webkit-details-marker]:hidden relative z-10">
         <div className="flex items-center gap-3">
-          <span className="text-sm font-semibold text-zinc-200">{selector.name}</span>
-          <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-zinc-800 text-zinc-400 uppercase">{selector.type}</span>
+          <Activity className="w-4 h-4 text-blue-500/70" />
+          <span className="text-sm font-semibold text-zinc-200 tracking-wide">{selector.name}</span>
+          <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-zinc-800/80 text-zinc-400 uppercase shadow-sm border border-zinc-700/30">{selector.type}</span>
         </div>
         <div className="flex items-center gap-3">
-          <span className="text-xs text-blue-400">{selector.now}</span>
+          <span className="text-xs font-medium text-blue-400/90">{selector.now}</span>
           <ChevronDown className="w-4 h-4 text-zinc-500 group-open:-rotate-180 transition-transform duration-200" />
         </div>
       </summary>
-      <div className="p-4 pt-0 border-t border-zinc-800/50">
-        <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 mt-4">
+
+      <div className="p-4 pt-0 border-t border-zinc-800/30 relative">
+        <div className="absolute top-0 left-0 w-full h-8 bg-gradient-to-b from-black/20 to-transparent pointer-events-none"></div>
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 mt-4 relative z-10">
           {selector.all?.map((outbound) => {
             const isActive = selector.now === outbound;
             const outboundType = allProxies[outbound]?.type || 'Unknown';
@@ -349,19 +352,27 @@ function SelectorPanel({ selector, allProxies, onSelectProxy }: { selector: Prox
               <button
                 key={outbound}
                 onClick={() => onSelectProxy(selector.name, outbound)}
-                className={`text-left p-3 rounded-lg border transition-all truncate focus:outline-none flex flex-col gap-1 ${
+                className={`text-left p-3.5 rounded-lg border transition-all truncate focus:outline-none flex flex-col gap-2 group/btn relative overflow-hidden ${
                   isActive
-                    ? 'bg-blue-500/10 border-blue-500/50 font-medium'
-                    : 'bg-zinc-950/50 border-zinc-800/50 hover:bg-zinc-800'
+                    ? 'bg-blue-500/10 border-blue-500/40 border-l-2 border-l-blue-500 shadow-sm'
+                    : 'bg-zinc-950/40 border-zinc-800/60 hover:bg-zinc-800/60 hover:border-zinc-700 hover:-translate-y-[1px]'
                 }`}
                 title={outbound}
               >
-                <span className={`text-sm truncate w-full ${isActive ? 'text-blue-400' : 'text-zinc-400'}`}>
+                {/* Background glow for active item */}
+                {isActive && (
+                  <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent pointer-events-none"></div>
+                )}
+
+                <span className={`text-sm truncate w-full font-medium relative z-10 ${isActive ? 'text-blue-400' : 'text-zinc-300 group-hover/btn:text-zinc-100 transition-colors'}`}>
                   {outbound}
                 </span>
-                <span className={`text-[10px] uppercase font-semibold tracking-wider ${isActive ? 'text-blue-500/60' : 'text-zinc-600'}`}>
-                  {outboundType}
-                </span>
+                <div className={`flex items-center gap-1.5 relative z-10 ${isActive ? 'text-blue-500/70' : 'text-zinc-500 group-hover/btn:text-zinc-400'}`}>
+                   <Globe className="w-3 h-3" />
+                   <span className="text-[10px] uppercase font-bold tracking-widest">
+                     {outboundType}
+                   </span>
+                </div>
               </button>
             )
           })}
