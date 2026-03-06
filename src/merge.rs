@@ -139,5 +139,16 @@ pub async fn generate_and_write_active_config(state: &AppState) -> Result<(), St
     }
 
     info!("Applied merged config to {:?}", tmp_path);
+
+    // Restart sing-box if it's currently running and we have an active config file
+    if state.get_active_config().await.is_some() {
+        if state.is_sing_box_running().await {
+            info!("sing-box is running, attempting to restart with new config...");
+            if let Err(e) = state.start_sing_box().await {
+                error!("Failed to restart sing-box: {}", e);
+                return Err(format!("Failed to restart sing-box: {}", e));
+            }
+        }
+    }
     Ok(())
 }

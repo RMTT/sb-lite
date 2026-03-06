@@ -81,11 +81,33 @@ async fn main() {
     let shared_state = AppState {
         state_directory: args.state_directory.clone(),
         persisted_state: Arc::new(RwLock::new(persisted_state)),
+        sing_box_path: sing_box_path,
+        sing_box_process: Arc::new(tokio::sync::Mutex::new(None)),
     };
 
-    let app = router::create_router(shared_state);
+
+    let app = router::create_router(shared_state.clone());
+
+    // Auto-start sing-box if enabled
+    let auto_start = {
+        let p_state = shared_state.persisted_state.read().await;
+        p_state.auto_start
+    };
+
+    if auto_start {
+        info!("Auto-start is enabled, attempting to start sing-box...");
+        if std::path::Path::new("/tmp/sing-box-lite-active.json").exists() {
+             match shared_state.start_sing_box().await {
+                 Ok(_) => info!("Auto-started sing-box successfully"),
+                 Err(e) => error!("Failed to auto-start sing-box: {}", e),
+             }
+        } else {
+             info!("Skipping auto-start: temporary config /tmp/sing-box-lite-active.json does not exist yet.");
+        }
+    }
 
     let addr = args.listen.clone();
+
     let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
     info!("Listening on http://{}", addr);
     axum::serve(listener, app).await.unwrap();

@@ -448,3 +448,67 @@ pub async fn update_subscription_handler(
             .into_response(),
     }
 }
+
+#[derive(Serialize)]
+pub struct SingBoxStatusResponse {
+    pub running: bool,
+    pub auto_start: bool,
+}
+
+pub async fn get_sing_box_status_handler(State(state): State<AppState>) -> Response {
+    let running = state.is_sing_box_running().await;
+    let auto_start = {
+        let p_state = state.persisted_state.read().await;
+        p_state.auto_start
+    };
+    (
+        StatusCode::OK,
+        Json(SingBoxStatusResponse {
+            running,
+            auto_start,
+        }),
+    )
+        .into_response()
+}
+
+pub async fn start_sing_box_handler(State(state): State<AppState>) -> Response {
+    match state.start_sing_box().await {
+        Ok(_) => (StatusCode::OK, "sing-box started").into_response(),
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e).into_response(),
+    }
+}
+
+pub async fn stop_sing_box_handler(State(state): State<AppState>) -> Response {
+    match state.stop_sing_box().await {
+        Ok(_) => (StatusCode::OK, "sing-box stopped").into_response(),
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e).into_response(),
+    }
+}
+
+#[derive(Deserialize)]
+pub struct AutoStartRequest {
+    pub auto_start: bool,
+}
+
+pub async fn update_auto_start_handler(
+    State(state): State<AppState>,
+    Json(payload): Json<AutoStartRequest>,
+) -> Response {
+    let mut p_state = state.persisted_state.write().await;
+    p_state.auto_start = payload.auto_start;
+
+    let bytes = match bincode::serialize(&*p_state) {
+        Ok(b) => b,
+        Err(e) => {
+            error!("Failed to serialize state: {}", e);
+            return (StatusCode::INTERNAL_SERVER_ERROR, "Failed to save state").into_response();
+        }
+    };
+
+    if let Err(e) = tokio::fs::write(state.state_file_path(), bytes).await {
+        error!("Failed to write state file: {}", e);
+        return (StatusCode::INTERNAL_SERVER_ERROR, "Failed to save state").into_response();
+    }
+
+    (StatusCode::OK, "Auto-start updated").into_response()
+}
