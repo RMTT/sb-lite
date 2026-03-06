@@ -1,7 +1,86 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { toast } from 'sonner'
 
 export function Overview() {
-  const [isRunning, setIsRunning] = useState(true)
+
+
+  const [isRunning, setIsRunning] = useState(false)
+  const [version, setVersion] = useState<string | null>(null)
+  const [autoStart, setAutoStart] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+
+  const fetchStatus = async () => {
+    try {
+      const res = await fetch('/api/sing-box/status')
+      if (res.ok) {
+        const data = await res.json()
+        setIsRunning(data.is_running)
+        setVersion(data.version)
+        setAutoStart(data.auto_start)
+      }
+    } catch {
+      console.error('Failed to fetch status')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleToggleAutoStart = async () => {
+      const newAutoStart = !autoStart
+      try {
+          const res = await fetch('/api/sing-box/autostart', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ enabled: newAutoStart })
+          })
+          if (res.ok) {
+              setAutoStart(newAutoStart)
+              toast.success(`Auto Start on Boot ${newAutoStart ? 'enabled' : 'disabled'}`)
+          } else {
+              toast.error('Failed to update Auto Start settings')
+          }
+      } catch {
+          toast.error('Failed to update Auto Start settings')
+      }
+  }
+
+
+  useEffect(() => {
+    fetchStatus()
+    const interval = setInterval(fetchStatus, 2000)
+    return () => clearInterval(interval)
+  }, [])
+
+  const handleStart = async () => {
+    try {
+      const res = await fetch('/api/sing-box/start', { method: 'POST' })
+      if (!res.ok) {
+        const msg = await res.text()
+        toast.error(`Failed to start: ${msg}`)
+      } else {
+        toast.success('Started successfully')
+        fetchStatus()
+      }
+    } catch {
+      toast.error('Failed to start')
+    }
+  }
+
+  const handleStop = async () => {
+    try {
+      const res = await fetch('/api/sing-box/stop', { method: 'POST' })
+      if (!res.ok) {
+        const msg = await res.text()
+        toast.error(`Failed to stop: ${msg}`)
+      } else {
+        toast.success('Stopped successfully')
+        fetchStatus()
+      }
+    } catch {
+      toast.error('Failed to stop')
+    }
+  }
+
 
   return (
     <>
@@ -18,8 +97,12 @@ export function Overview() {
             </div>
             <div className="flex items-center gap-3 bg-zinc-950/50 px-4 py-2 rounded-lg border border-zinc-800/50">
               <span className="text-sm font-medium text-zinc-400">Auto Start on Boot</span>
-              <button className="w-10 h-6 rounded-full bg-blue-600 relative transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-zinc-900">
-                <div className="absolute top-1 left-5 bg-white size-4 rounded-full shadow transition-transform"></div>
+              <button
+                onClick={handleToggleAutoStart}
+                disabled={isLoading}
+                className={`w-10 h-6 rounded-full relative transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-zinc-900 disabled:opacity-50 ${autoStart ? 'bg-blue-600' : 'bg-zinc-700'}`}
+              >
+                <div className={`absolute top-1 bg-white size-4 rounded-full shadow transition-transform ${autoStart ? 'translate-x-5' : 'translate-x-1'}`}></div>
               </button>
             </div>
           </div>
@@ -29,22 +112,24 @@ export function Overview() {
               <span className="material-symbols-outlined !text-5xl text-zinc-400">router</span>
             </div>
             <div className="text-center relative z-10">
-              <div className="text-zinc-300 font-medium mb-1">Core Version: 1.8.0-rc.1</div>
-              <div className="text-xs text-zinc-500">Last restart: 2 hours ago</div>
+              <div className="text-zinc-300 font-medium mb-1">Core Version: {version || 'Unknown'}</div>
+
             </div>
           </div>
           <div className="flex items-center justify-center gap-4 relative z-10">
             <button
-                className="flex items-center justify-center gap-2 px-8 py-3 rounded-lg border border-red-500/20 bg-red-500/10 text-red-400 hover:bg-red-500/20 hover:text-red-300 transition-colors font-medium w-48"
-                onClick={() => setIsRunning(false)}
+                className="flex items-center justify-center gap-2 px-8 py-3 rounded-lg border border-red-500/20 bg-red-500/10 text-red-400 hover:bg-red-500/20 hover:text-red-300 transition-colors font-medium w-48 disabled:opacity-50 disabled:cursor-not-allowed"
+                onClick={handleStop}
+                disabled={!isRunning || isLoading}
             >
               <span className="material-symbols-outlined !text-sm">stop</span> Stop
             </button>
             <button
-                className="flex items-center justify-center gap-2 px-8 py-3 rounded-lg bg-white text-zinc-950 hover:bg-zinc-200 transition-colors font-semibold w-48"
-                onClick={() => setIsRunning(true)}
+                className="flex items-center justify-center gap-2 px-8 py-3 rounded-lg bg-white text-zinc-950 hover:bg-zinc-200 transition-colors font-semibold w-48 disabled:opacity-50 disabled:cursor-not-allowed"
+                onClick={handleStart}
+                disabled={isRunning || isLoading}
             >
-              <span className="material-symbols-outlined !text-sm">refresh</span> Restart
+              <span className="material-symbols-outlined !text-sm">play_arrow</span> Start
             </button>
           </div>
         </div>

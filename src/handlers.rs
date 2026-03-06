@@ -17,15 +17,17 @@ pub struct Asset;
 pub struct CustomFieldsRequest {
     pub subscriptions: Vec<Subscription>,
     pub selectors: Vec<Selector>,
+    pub external_controller: String,
 }
 
 pub async fn get_custom_fields_handler(State(state): State<AppState>) -> Response {
-    let (urls, selectors) = state.get_custom_fields().await;
+    let (urls, selectors, external_controller) = state.get_custom_fields().await;
     (
         StatusCode::OK,
         Json(CustomFieldsRequest {
             subscriptions: urls,
             selectors,
+            external_controller,
         }),
     )
         .into_response()
@@ -36,7 +38,11 @@ pub async fn update_custom_fields_handler(
     Json(payload): Json<CustomFieldsRequest>,
 ) -> Response {
     match state
-        .set_custom_fields(payload.subscriptions, payload.selectors)
+        .set_custom_fields(
+            payload.subscriptions,
+            payload.selectors,
+            payload.external_controller,
+        )
         .await
     {
         Ok(_) => {
@@ -194,6 +200,7 @@ pub async fn update_config_handler(
             info!("Config file updated at {:?}", config_path);
 
             // If the updated config is the active one, regenerate the merged config
+
             if let Some(active) = state.get_active_config().await {
                 if active == safe_name {
                     if let Err(e) = crate::merge::generate_and_write_active_config(&state).await {
@@ -201,6 +208,7 @@ pub async fn update_config_handler(
                             "Failed to generate and write active config after update: {}",
                             e
                         );
+                        return (StatusCode::BAD_REQUEST, e).into_response();
                     }
                 }
             }
@@ -268,21 +276,54 @@ pub async fn apply_config_handler(
             .into_response();
     }
 
+    let is_running = {
+        let mut process_lock = state.sing_box_process.lock().await;
+        if let Some(child) = process_lock.as_mut() {
+            child.try_wait().map_or(false, |status| status.is_none())
+        } else {
+            false
+        }
+    };
+
+    if !is_running {
+        if let Err(e) = state.restart_sing_box(false).await {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Config applied but failed to start sing-box: {}", e),
+            )
+                .into_response();
+        }
+    }
+
     (StatusCode::OK, "Config applied successfully").into_response()
 }
 
-pub async fn get_merged_config_handler() -> Response {
+pub async fn get_merged_config_handler(State(state): State<AppState>) -> Response {
     let tmp_path = std::path::PathBuf::from("/tmp/sing-box-lite-active.json");
-    match tokio::fs::read_to_string(&tmp_path).await {
+    let mut read_result = tokio::fs::read_to_string(&tmp_path).await;
+
+    if let Err(e) = &read_result {
+        if e.kind() == std::io::ErrorKind::NotFound {
+            if let Err(gen_err) = crate::merge::generate_and_write_active_config(&state).await {
+                error!("Failed to generate merged config: {}", gen_err);
+                return (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    "Failed to generate merged config",
+                )
+                    .into_response();
+            }
+            // Try reading again
+            read_result = tokio::fs::read_to_string(&tmp_path).await;
+        }
+    }
+
+    match read_result {
         Ok(content) => (
             StatusCode::OK,
             [(header::CONTENT_TYPE, "application/json")],
             content,
         )
             .into_response(),
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
-            (StatusCode::NOT_FOUND, "Merged config not found").into_response()
-        }
         Err(e) => {
             error!("Failed to read merged config: {}", e);
             (
@@ -384,7 +425,7 @@ pub async fn update_subscription_handler(
     State(state): State<AppState>,
     Path(index): Path<usize>,
 ) -> Response {
-    let (subs, _) = state.get_custom_fields().await;
+    let (subs, _, _) = state.get_custom_fields().await;
     if index >= subs.len() {
         return (StatusCode::BAD_REQUEST, "Invalid subscription index").into_response();
     }
@@ -446,5 +487,107 @@ pub async fn update_subscription_handler(
             format!("Failed to fetch subscription: {}", e),
         )
             .into_response(),
+    }
+}
+
+#[derive(Serialize)]
+pub struct SingBoxStatusResponse {
+    pub version: Option<String>,
+    pub is_running: bool,
+    pub auto_start: bool,
+}
+
+pub async fn get_sing_box_status_handler(State(state): State<AppState>) -> Response {
+    let version = match tokio::process::Command::new(&state.sing_box_path)
+        .arg("version")
+        .output()
+        .await
+    {
+        Ok(output) if output.status.success() => {
+            let output_str = String::from_utf8_lossy(&output.stdout);
+            // Parse version. e.g. "sing-box version 1.8.0-rc.1"
+            let parsed_version = output_str
+                .lines()
+                .next()
+                .and_then(|line| line.strip_prefix("sing-box version "))
+                .map(|s| s.to_string());
+            parsed_version
+        }
+        _ => None,
+    };
+
+    let mut is_running = false;
+    let mut process_lock = state.sing_box_process.lock().await;
+    if let Some(child) = process_lock.as_mut() {
+        if let Ok(None) = child.try_wait() {
+            is_running = true;
+        } else {
+            *process_lock = None;
+        }
+    }
+
+    let auto_start = state.get_auto_start().await;
+
+    (
+        StatusCode::OK,
+        Json(SingBoxStatusResponse {
+            version,
+            is_running,
+            auto_start,
+        }),
+    )
+        .into_response()
+}
+
+pub async fn start_sing_box_handler(State(state): State<AppState>) -> Response {
+    match state.restart_sing_box(false).await {
+        Ok(_) => (StatusCode::OK, "sing-box started").into_response(),
+        Err(e) => {
+            if e == "sing-box is already running" {
+                (StatusCode::BAD_REQUEST, e).into_response()
+            } else {
+                (StatusCode::INTERNAL_SERVER_ERROR, e).into_response()
+            }
+        }
+    }
+}
+
+pub async fn stop_sing_box_handler(State(state): State<AppState>) -> Response {
+    let mut process_lock = state.sing_box_process.lock().await;
+    if let Some(mut child) = process_lock.take() {
+        if let Err(e) = child.kill().await {
+            error!("Failed to kill sing-box process: {}", e);
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Failed to stop sing-box: {}", e),
+            )
+                .into_response();
+        }
+        let _ = child.wait().await;
+        info!("sing-box stopped");
+        (StatusCode::OK, "sing-box stopped").into_response()
+    } else {
+        (StatusCode::BAD_REQUEST, "sing-box is not running").into_response()
+    }
+}
+
+#[derive(Deserialize)]
+pub struct AutoStartRequest {
+    pub enabled: bool,
+}
+
+pub async fn toggle_auto_start_handler(
+    State(state): State<AppState>,
+    Json(payload): Json<AutoStartRequest>,
+) -> Response {
+    match state.set_auto_start(payload.enabled).await {
+        Ok(_) => {
+            info!("Auto start set to {}", payload.enabled);
+            (StatusCode::OK, "Auto start updated").into_response()
+        }
+        Err(e) => {
+            error!("Failed to save state: {}", e);
+            (StatusCode::INTERNAL_SERVER_ERROR, "Failed to save state").into_response()
+        }
     }
 }

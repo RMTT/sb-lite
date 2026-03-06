@@ -27,7 +27,7 @@ pub async fn generate_and_write_active_config(state: &AppState) -> Result<(), St
         _ => json!({}),
     };
 
-    let (subs, selectors) = state.get_custom_fields().await;
+    let (subs, selectors, external_controller) = state.get_custom_fields().await;
     let mut new_outbounds = Vec::new();
     let mut all_tags = Vec::new();
 
@@ -126,6 +126,22 @@ pub async fn generate_and_write_active_config(state: &AppState) -> Result<(), St
         let mut final_outbounds = new_outbounds;
         final_outbounds.extend(selector_outbounds);
         config["outbounds"] = serde_json::Value::Array(final_outbounds);
+    }
+
+    // Add external controller
+    if !external_controller.is_empty() {
+        if !config.as_object().unwrap().contains_key("experimental") {
+            config["experimental"] = serde_json::json!({});
+        }
+        if !config["experimental"]
+            .as_object()
+            .unwrap()
+            .contains_key("v2ray_api")
+        {
+            config["experimental"]["v2ray_api"] = serde_json::json!({});
+        }
+        config["experimental"]["v2ray_api"]["external_controller"] =
+            serde_json::json!(external_controller);
     }
 
     let merged_content = match serde_json::to_string_pretty(&config) {

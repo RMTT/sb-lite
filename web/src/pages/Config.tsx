@@ -24,6 +24,7 @@ export interface Subscription {
 export interface CustomFieldsData {
     subscriptions: Subscription[]
     selectors: Selector[]
+    external_controller: string
 }
 
 export function Config() {
@@ -35,6 +36,7 @@ export function Config() {
   // Custom Fields State
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([])
   const [selectors, setSelectors] = useState<Selector[]>([])
+  const [externalController, setExternalController] = useState('127.0.0.1:9091')
   const [, setIsSavingCustomFields] = useState(false)
 
   // Editor Modal State
@@ -80,6 +82,7 @@ export function Config() {
           const data: CustomFieldsData = await customFieldsRes.json()
           setSubscriptions(data.subscriptions || [])
           setSelectors(data.selectors || [])
+          setExternalController(data.external_controller || '127.0.0.1:9091')
       } else {
           throw new Error(`Failed to load custom fields: ${customFieldsRes.statusText}`)
       }
@@ -151,6 +154,7 @@ export function Config() {
         throw new Error('Invalid JSON format. Please fix errors before saving.')
       }
 
+
       const response = await fetch(`/api/config/${editingFileName}`, {
         method: 'POST',
         headers: {
@@ -164,8 +168,14 @@ export function Config() {
         setOriginalContent(configContent)
         setIsEditorOpen(false)
       } else {
-        throw new Error(`Failed to save config: ${response.statusText}`)
+        let msg = response.statusText
+        try {
+            const errorText = await response.text()
+            if (errorText) msg = errorText
+        } catch { /* ignore */ }
+        throw new Error(`Failed to save config: ${msg}`)
       }
+
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'An error occurred while saving.')
     } finally {
@@ -186,7 +196,12 @@ export function Config() {
               toast.success(`Applied config ${filename} successfully!`)
               setActiveConfig(filename)
           } else {
-              throw new Error(`Failed to apply config: ${response.statusText}`)
+              let msg = response.statusText
+              try {
+                  const errorText = await response.text()
+                  if (errorText) msg = errorText
+              } catch { /* ignore */ }
+              throw new Error(`Failed to apply config: ${msg}`)
           }
       } catch (err) {
           toast.error(err instanceof Error ? err.message : 'Failed to apply config.')
@@ -380,7 +395,8 @@ export function Config() {
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                   subscriptions: updatedSubs,
-                  selectors: selectors
+                  selectors: selectors,
+                  external_controller: externalController
               })
           })
 
@@ -427,7 +443,8 @@ export function Config() {
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                   subscriptions: updatedSubs,
-                  selectors: selectors
+                  selectors: selectors,
+                  external_controller: externalController
               })
           })
 
@@ -472,7 +489,8 @@ export function Config() {
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                   subscriptions: subscriptions,
-                  selectors: updatedSelectors
+                  selectors: updatedSelectors,
+                  external_controller: externalController
               })
           })
 
@@ -497,7 +515,8 @@ export function Config() {
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                   subscriptions: subscriptions,
-                  selectors: updatedSelectors
+                  selectors: updatedSelectors,
+                  external_controller: externalController
               })
           })
 
@@ -783,6 +802,49 @@ export function Config() {
                   </div>
                 </div>
             )}
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xs font-bold text-zinc-500 tracking-widest uppercase">External Controller</h3>
+              <button
+                  onClick={async () => {
+                      setIsSavingCustomFields(true)
+                      try {
+                          const response = await fetch('/api/custom-fields', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({
+                                  subscriptions: subscriptions,
+                                  selectors: selectors,
+                                  external_controller: externalController
+                              })
+                          })
+                          if (response.ok) {
+                              toast.success('External controller saved!')
+                          } else {
+                              throw new Error(`Failed to save: ${response.statusText}`)
+                          }
+                      } catch (err) {
+                          toast.error(err instanceof Error ? err.message : 'Save failed.')
+                      } finally {
+                          setIsSavingCustomFields(false)
+                      }
+                  }}
+                  className="px-4 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-semibold rounded transition-colors"
+              >
+                  Save
+              </button>
+            </div>
+            <div className="flex items-center gap-4">
+              <input
+                  type="text"
+                  value={externalController}
+                  onChange={(e) => setExternalController(e.target.value)}
+                  placeholder="127.0.0.1:9091"
+                  className="w-full bg-[#09090b] border border-zinc-800 rounded-md px-4 py-2.5 text-sm text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors"
+              />
+            </div>
           </div>
         </div>
       </div>
