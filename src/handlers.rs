@@ -6,7 +6,6 @@ use axum::{
 use log::{error, info};
 use rust_embed::Embed;
 use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
 
 use crate::state::{AppState, Selector, Subscription};
 
@@ -114,7 +113,7 @@ pub async fn get_config_handler(
         None => return (StatusCode::BAD_REQUEST, "Invalid filename").into_response(),
     };
 
-    let config_path = state.state_directory.join(safe_name);
+    let config_path = state.state_directory.join(&safe_name);
     match tokio::fs::read_to_string(&config_path).await {
         Ok(content) => (
             StatusCode::OK,
@@ -154,6 +153,12 @@ pub async fn delete_config_handler(
             if let Some(active) = state.get_active_config().await {
                 if active == safe_name {
                     let _ = state.set_active_config("".to_string()).await;
+                    if let Err(e) = crate::merge::generate_and_write_active_config(&state).await {
+                        error!(
+                            "Failed to generate and write active config after deletion: {}",
+                            e
+                        );
+                    }
                 }
             }
 
@@ -183,10 +188,23 @@ pub async fn update_config_handler(
         None => return (StatusCode::BAD_REQUEST, "Invalid filename").into_response(),
     };
 
-    let config_path = state.state_directory.join(safe_name);
+    let config_path = state.state_directory.join(&safe_name);
     match tokio::fs::write(&config_path, body).await {
         Ok(_) => {
             info!("Config file updated at {:?}", config_path);
+
+            // If the updated config is the active one, regenerate the merged config
+            if let Some(active) = state.get_active_config().await {
+                if active == safe_name {
+                    if let Err(e) = crate::merge::generate_and_write_active_config(&state).await {
+                        error!(
+                            "Failed to generate and write active config after update: {}",
+                            e
+                        );
+                    }
+                }
+            }
+
             (StatusCode::OK, "Config updated").into_response()
         }
         Err(e) => {
@@ -229,73 +247,9 @@ pub async fn apply_config_handler(
     };
 
     let config_path = state.state_directory.join(&safe_name);
-    let content = match tokio::fs::read_to_string(&config_path).await {
-        Ok(c) => c,
-        Err(_) => return (StatusCode::NOT_FOUND, "Config file not found").into_response(),
-    };
-
-    // Parse base config
-    let mut config: serde_json::Value = match serde_json::from_str(&content) {
-        Ok(c) => c,
-        Err(e) => {
-            return (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                format!("Invalid base config JSON: {}", e),
-            )
-                .into_response();
-        }
-    };
-
-    let (subs, _) = state.get_custom_fields().await;
-    let mut new_outbounds = Vec::new();
-
-    for sub in subs {
-        if let Some(raw) = sub.raw_data {
-            if let Ok(sip_data) = serde_json::from_str::<Sip008Data>(&raw) {
-                if let Some(servers) = sip_data.servers {
-                    for server in servers {
-                        let tag = server.remarks.unwrap_or_else(|| server.server.clone());
-                        let mut outbound = serde_json::json!({
-                            "type": "shadowsocks",
-                            "tag": tag,
-                            "server": server.server,
-                            "server_port": server.server_port,
-                            "method": server.method.unwrap_or_else(|| "chacha20-ietf-poly1305".to_string()),
-                        });
-
-                        if let Some(password) = server.password {
-                            outbound["password"] = serde_json::Value::String(password);
-                        }
-
-                        new_outbounds.push(outbound);
-                    }
-                }
-            } else {
-                error!(
-                    "Failed to parse subscription data from url: {} as SIP008",
-                    sub.url
-                );
-            }
-        }
+    if let Err(_) = tokio::fs::metadata(&config_path).await {
+        return (StatusCode::NOT_FOUND, "Config file not found").into_response();
     }
-
-    if let Some(outbounds) = config.get_mut("outbounds").and_then(|o| o.as_array_mut()) {
-        outbounds.extend(new_outbounds);
-    } else {
-        // Create an outbounds array if it doesn't exist
-        config["outbounds"] = serde_json::Value::Array(new_outbounds);
-    }
-
-    let merged_content = match serde_json::to_string_pretty(&config) {
-        Ok(c) => c,
-        Err(e) => {
-            return (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                format!("Failed to serialize merged config: {}", e),
-            )
-                .into_response();
-        }
-    };
 
     // Save active state
     if let Err(e) = state.set_active_config(safe_name.clone()).await {
@@ -303,18 +257,15 @@ pub async fn apply_config_handler(
         return (StatusCode::INTERNAL_SERVER_ERROR, "Failed to save state").into_response();
     }
 
-    // Write to /tmp/sing-box-lite-active.json
-    let tmp_path = PathBuf::from("/tmp/sing-box-lite-active.json");
-    if let Err(e) = tokio::fs::write(&tmp_path, merged_content).await {
-        error!("Failed to write temporary config: {}", e);
+    if let Err(e) = crate::merge::generate_and_write_active_config(&state).await {
+        error!("Failed to generate and write active config: {}", e);
         return (
             StatusCode::INTERNAL_SERVER_ERROR,
-            "Failed to write temporary config",
+            "Failed to merge temporary config",
         )
             .into_response();
     }
 
-    info!("Applied config {} to {:?}", safe_name, tmp_path);
     (StatusCode::OK, "Config applied successfully").into_response()
 }
 
