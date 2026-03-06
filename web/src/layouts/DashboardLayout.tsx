@@ -60,7 +60,7 @@ export function DashboardLayout() {
       {/* Main Content Area */}
       <main className="flex-1 overflow-y-auto relative bg-[#09090b] custom-scrollbar">
         {/* Top Header */}
-        <header className="sticky top-0 z-10 flex items-center justify-between px-8 py-4 border-b border-zinc-800/50 bg-[#09090b]/80 backdrop-blur-md">
+        <header className="sticky top-0 z-10 flex items-center justify-between px-6 py-4 border-b border-zinc-800/50 bg-[#09090b]/80 backdrop-blur-md">
            <div className="flex items-center gap-2">
                <span className="text-base font-semibold text-zinc-100">
                   {location.pathname === '/' ? 'Dashboard Overview' : 'Configuration'}
@@ -69,7 +69,7 @@ export function DashboardLayout() {
         </header>
 
         {/* Content Container */}
-        <div className="max-w-7xl mx-auto px-6 py-6 sm:px-8 lg:px-10 space-y-8">
+        <div className="w-full mx-auto px-6 py-6 sm:px-8 lg:px-8 space-y-8">
             <Outlet />
         </div>
       </main>

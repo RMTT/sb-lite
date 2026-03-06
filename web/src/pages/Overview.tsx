@@ -83,18 +83,6 @@ export function Overview() {
         </div>
       </div>
 
-      <div className="bg-zinc-900/50 border border-zinc-800/50 rounded-xl overflow-hidden shadow-sm h-[300px] relative flex flex-col">
-        <div className="p-6 pb-0 relative z-10">
-          <h3 className="text-sm font-semibold text-zinc-200">Active Connections</h3>
-          <p className="text-xs text-zinc-500 mt-1">Monitoring global network traffic</p>
-        </div>
-        <div className="flex-1 flex items-center justify-center relative">
-          <div className="absolute inset-0 bg-gradient-to-t from-blue-500/10 to-transparent pointer-events-none"></div>
-          <div className="text-6xl font-thin tracking-[0.2em] text-zinc-700/50 font-mono">300×300</div>
-          <div className="absolute top-1/2 left-1/4 size-1 bg-blue-500 rounded-full blur-[1px]"></div>
-          <div className="absolute top-1/3 left-3/4 size-1.5 bg-blue-400 rounded-full blur-[1px]"></div>
-        </div>
-      </div>
     </>
   )
 }
