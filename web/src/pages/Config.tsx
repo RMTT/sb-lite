@@ -52,6 +52,8 @@ export function Config() {
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [createFileName, setCreateFileName] = useState('')
   const [configToDelete, setConfigToDelete] = useState<string | null>(null)
+  const [isMergedEditorOpen, setIsMergedEditorOpen] = useState(false)
+  const [mergedConfigContent, setMergedConfigContent] = useState('')
 
   const [isLoading, setIsLoading] = useState<boolean>(true)
   const [isSaving, setIsSaving] = useState<boolean>(false)
@@ -97,6 +99,26 @@ export function Config() {
     if (value !== undefined) {
       setConfigContent(value)
     }
+  }
+
+  const handleOpenMergedConfig = async () => {
+      setIsLoading(true)
+      try {
+          const response = await fetch('/api/config/merged')
+          if (response.ok) {
+              const text = await response.text()
+              setMergedConfigContent(text)
+              setIsMergedEditorOpen(true)
+          } else if (response.status === 404) {
+              toast.error('Merged config not found. Apply a config or update custom settings first.')
+          } else {
+              throw new Error(`Failed to load merged config: ${response.statusText}`)
+          }
+      } catch (err) {
+          toast.error(err instanceof Error ? err.message : 'Failed to load merged config.')
+      } finally {
+          setIsLoading(false)
+      }
   }
 
   const handleOpenEditor = async (filename: string) => {
@@ -592,10 +614,12 @@ export function Config() {
               </div>
               <div className="flex items-center gap-2">
                   <button
+                      onClick={handleOpenMergedConfig}
+                      disabled={isLoading}
                       className="btn btn-sm btn-outline"
                   >
                       <Share className="h-4 w-4" />
-                      Export merged config
+                      Show merged config
                   </button>
 
               </div>
@@ -897,6 +921,47 @@ export function Config() {
                           {isSaving && <RefreshCw className="h-4 w-4 animate-spin" />}
                           Create
                       </button>
+                  </div>
+              </div>
+          </div>
+      )}
+
+
+      {/* Merged Config Editor Modal */}
+      {isMergedEditorOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-6">
+              <div className="flex flex-col w-full max-w-5xl h-full max-h-[90vh] bg-[#1e1e1e] border border-base-300 shadow-2xl rounded-lg overflow-hidden">
+                  <div className="flex items-center justify-between p-3 border-b border-base-300 bg-[#252526]">
+                      <div className="text-sm font-medium text-base-content/80 flex items-center gap-2">
+                          <FileJson className="h-4 w-4 text-primary" />
+                          <span className="text-base-content">Merged Configuration (Read-only)</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                          <button
+                              onClick={() => setIsMergedEditorOpen(false)}
+                              className="btn btn-sm btn-square btn-ghost"
+                              title="Close"
+                          >
+                              <X className="h-4 w-4" />
+                          </button>
+                      </div>
+                  </div>
+
+                  <div className="flex-1 relative">
+                      <Editor
+                          height="100%"
+                          defaultLanguage="json"
+                          theme="vs-dark"
+                          value={mergedConfigContent}
+                          options={{
+                              minimap: { enabled: false },
+                              fontSize: 14,
+                              wordWrap: 'on',
+                              scrollBeyondLastLine: false,
+                              padding: { top: 16, bottom: 16 },
+                              readOnly: true,
+                          }}
+                      />
                   </div>
               </div>
           </div>

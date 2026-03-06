@@ -318,6 +318,29 @@ pub async fn apply_config_handler(
     (StatusCode::OK, "Config applied successfully").into_response()
 }
 
+pub async fn get_merged_config_handler() -> Response {
+    let tmp_path = std::path::PathBuf::from("/tmp/sing-box-lite-active.json");
+    match tokio::fs::read_to_string(&tmp_path).await {
+        Ok(content) => (
+            StatusCode::OK,
+            [(header::CONTENT_TYPE, "application/json")],
+            content,
+        )
+            .into_response(),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+            (StatusCode::NOT_FOUND, "Merged config not found").into_response()
+        }
+        Err(e) => {
+            error!("Failed to read merged config: {}", e);
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Failed to read merged config",
+            )
+                .into_response()
+        }
+    }
+}
+
 pub async fn static_handler(uri: Uri) -> impl IntoResponse {
     let path = uri.path().trim_start_matches('/');
 
