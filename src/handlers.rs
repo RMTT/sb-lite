@@ -298,18 +298,32 @@ pub async fn apply_config_handler(
     (StatusCode::OK, "Config applied successfully").into_response()
 }
 
-pub async fn get_merged_config_handler() -> Response {
+pub async fn get_merged_config_handler(State(state): State<AppState>) -> Response {
     let tmp_path = std::path::PathBuf::from("/tmp/sing-box-lite-active.json");
-    match tokio::fs::read_to_string(&tmp_path).await {
+    let mut read_result = tokio::fs::read_to_string(&tmp_path).await;
+
+    if let Err(e) = &read_result {
+        if e.kind() == std::io::ErrorKind::NotFound {
+            if let Err(gen_err) = crate::merge::generate_and_write_active_config(&state).await {
+                error!("Failed to generate merged config: {}", gen_err);
+                return (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    "Failed to generate merged config",
+                )
+                    .into_response();
+            }
+            // Try reading again
+            read_result = tokio::fs::read_to_string(&tmp_path).await;
+        }
+    }
+
+    match read_result {
         Ok(content) => (
             StatusCode::OK,
             [(header::CONTENT_TYPE, "application/json")],
             content,
         )
             .into_response(),
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
-            (StatusCode::NOT_FOUND, "Merged config not found").into_response()
-        }
         Err(e) => {
             error!("Failed to read merged config: {}", e);
             (
