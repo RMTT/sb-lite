@@ -300,6 +300,7 @@ export function Overview() {
             <SelectorPanel
               key={selector.name}
               selector={selector}
+              allProxies={proxies}
               onSelectProxy={handleSelectProxy}
             />
           ))}
@@ -309,7 +310,7 @@ export function Overview() {
   )
 }
 
-function SelectorPanel({ selector, onSelectProxy }: { selector: ProxyNode, onSelectProxy: (selectorName: string, proxyName: string) => void }) {
+function SelectorPanel({ selector, allProxies, onSelectProxy }: { selector: ProxyNode, allProxies: Record<string, ProxyNode>, onSelectProxy: (selectorName: string, proxyName: string) => void }) {
   const storageKey = `singbox_lite_selector_${selector.name}_open`
 
   const [isOpen, setIsOpen] = useState(() => {
@@ -343,18 +344,24 @@ function SelectorPanel({ selector, onSelectProxy }: { selector: ProxyNode, onSel
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 mt-4">
           {selector.all?.map((outbound) => {
             const isActive = selector.now === outbound;
+            const outboundType = allProxies[outbound]?.type || 'Unknown';
             return (
               <button
                 key={outbound}
                 onClick={() => onSelectProxy(selector.name, outbound)}
-                className={`text-left p-3 rounded-lg border transition-all text-sm truncate focus:outline-none ${
+                className={`text-left p-3 rounded-lg border transition-all truncate focus:outline-none flex flex-col gap-1 ${
                   isActive
-                    ? 'bg-blue-500/10 border-blue-500/50 text-blue-400 font-medium'
-                    : 'bg-zinc-950/50 border-zinc-800/50 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-300'
+                    ? 'bg-blue-500/10 border-blue-500/50 font-medium'
+                    : 'bg-zinc-950/50 border-zinc-800/50 hover:bg-zinc-800'
                 }`}
                 title={outbound}
               >
-                {outbound}
+                <span className={`text-sm truncate w-full ${isActive ? 'text-blue-400' : 'text-zinc-400'}`}>
+                  {outbound}
+                </span>
+                <span className={`text-[10px] uppercase font-semibold tracking-wider ${isActive ? 'text-blue-500/60' : 'text-zinc-600'}`}>
+                  {outboundType}
+                </span>
               </button>
             )
           })}
