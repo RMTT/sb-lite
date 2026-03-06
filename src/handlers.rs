@@ -720,23 +720,19 @@ pub async fn get_proxy_delay_handler(
     Path(proxy_name): Path<String>,
     Query(query): Query<ProxyDelayQuery>,
 ) -> Response {
-    let api_port = {
+    let controller_address = {
         let state_guard = state.persisted_state.read().await;
-        let ctrl = state_guard.external_controller.clone();
-        ctrl.split(':').nth(1).and_then(|p| p.parse::<u16>().ok())
+        state_guard.external_controller.clone()
     };
 
-    let api_port = match api_port {
-        Some(port) => port,
-        None => {
-            return (
-                StatusCode::SERVICE_UNAVAILABLE,
-                axum::Json(serde_json::json!({
-                    "error": "sing-box API is not configured or running."
-                })),
-            ).into_response();
-        }
-    };
+    if controller_address.is_empty() {
+        return (
+            StatusCode::SERVICE_UNAVAILABLE,
+            axum::Json(serde_json::json!({
+                "error": "sing-box API is not configured or running."
+            })),
+        ).into_response();
+    }
 
     let mut query_params = vec![];
     if let Some(url) = query.url {
@@ -752,7 +748,7 @@ pub async fn get_proxy_delay_handler(
         format!("?{}", query_params.join("&"))
     };
 
-    let url = format!("http://127.0.0.1:{}/proxies/{}/delay{}", api_port, proxy_name, query_string);
+    let url = format!("http://{}/proxies/{}/delay{}", controller_address, proxy_name, query_string);
     let client = reqwest::Client::new();
     match client.get(&url).send().await {
         Ok(res) => {
