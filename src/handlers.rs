@@ -212,6 +212,8 @@ pub struct Sip008Server {
     pub password: Option<String>,
     pub method: Option<String>,
     pub remarks: Option<String>,
+    pub plugin: Option<String>,
+    pub plugin_opts: Option<String>,
 }
 
 #[derive(Deserialize)]
