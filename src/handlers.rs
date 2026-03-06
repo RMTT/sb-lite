@@ -705,3 +705,75 @@ pub async fn update_proxy_handler(
         }
     }
 }
+
+
+use axum::extract::Query;
+
+#[derive(serde::Deserialize)]
+pub struct ProxyDelayQuery {
+    url: Option<String>,
+    timeout: Option<u32>,
+}
+
+pub async fn get_proxy_delay_handler(
+    State(state): State<AppState>,
+    Path(proxy_name): Path<String>,
+    Query(query): Query<ProxyDelayQuery>,
+) -> Response {
+    let api_port = {
+        let state_guard = state.persisted_state.read().await;
+        let ctrl = state_guard.external_controller.clone();
+        ctrl.split(':').nth(1).and_then(|p| p.parse::<u16>().ok())
+    };
+
+    let api_port = match api_port {
+        Some(port) => port,
+        None => {
+            return (
+                StatusCode::SERVICE_UNAVAILABLE,
+                axum::Json(serde_json::json!({
+                    "error": "sing-box API is not configured or running."
+                })),
+            ).into_response();
+        }
+    };
+
+    let mut query_params = vec![];
+    if let Some(url) = query.url {
+        query_params.push(format!("url={}", url));
+    }
+    if let Some(timeout) = query.timeout {
+        query_params.push(format!("timeout={}", timeout));
+    }
+
+    let query_string = if query_params.is_empty() {
+        String::new()
+    } else {
+        format!("?{}", query_params.join("&"))
+    };
+
+    let url = format!("http://127.0.0.1:{}/proxies/{}/delay{}", api_port, proxy_name, query_string);
+    let client = reqwest::Client::new();
+    match client.get(&url).send().await {
+        Ok(res) => {
+            let status = res.status();
+            match res.text().await {
+                Ok(text) => (status, text).into_response(),
+                Err(e) => {
+                    error!("Failed to read proxy delay response: {}", e);
+                    (
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        axum::Json(serde_json::json!({ "error": e.to_string() })),
+                    ).into_response()
+                }
+            }
+        }
+        Err(e) => {
+            error!("Failed to fetch proxy delay: {}", e);
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                axum::Json(serde_json::json!({ "error": e.to_string() })),
+            ).into_response()
+        }
+    }
+}

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Square, Play, Router, Clock, Cpu, Download, Upload, ChevronDown, Activity, Globe } from 'lucide-react'
+import { Square, Play, Router, Clock, Cpu, Download, Upload, ChevronDown, Activity, Globe, Zap } from 'lucide-react'
 import { toast } from 'sonner'
 
 function formatBytes(bytes: number) {
@@ -318,10 +318,25 @@ function SelectorPanel({ selector, allProxies, onSelectProxy }: { selector: Prox
     return saved === 'true'
   })
 
+  const [latencies, setLatencies] = useState<Record<string, { value: number, error: boolean, testing: boolean }>>({})
+
   const handleToggle = (e: React.SyntheticEvent<HTMLDetailsElement>) => {
     const newState = e.currentTarget.open
     setIsOpen(newState)
     localStorage.setItem(storageKey, String(newState))
+  }
+
+  const handleTestLatency = async (e: React.MouseEvent, proxyName: string) => {
+    e.stopPropagation()
+    setLatencies(prev => ({ ...prev, [proxyName]: { value: 0, error: false, testing: true } }))
+    try {
+      const res = await fetch(`/api/sing-box/proxies/${encodeURIComponent(proxyName)}/delay?url=http://www.gstatic.com/generate_204&timeout=5000`)
+      if (!res.ok) throw new Error('Latency test failed')
+      const data = await res.json()
+      setLatencies(prev => ({ ...prev, [proxyName]: { value: data.delay || 0, error: false, testing: false } }))
+    } catch {
+      setLatencies(prev => ({ ...prev, [proxyName]: { value: 0, error: true, testing: false } }))
+    }
   }
 
   return (
@@ -348,6 +363,8 @@ function SelectorPanel({ selector, allProxies, onSelectProxy }: { selector: Prox
           {selector.all?.map((outbound) => {
             const isActive = selector.now === outbound;
             const outboundType = allProxies[outbound]?.type || 'Unknown';
+            const latencyData = latencies[outbound];
+
             return (
               <button
                 key={outbound}
@@ -364,14 +381,42 @@ function SelectorPanel({ selector, allProxies, onSelectProxy }: { selector: Prox
                   <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent pointer-events-none"></div>
                 )}
 
-                <span className={`text-sm truncate w-full font-medium relative z-10 ${isActive ? 'text-blue-400' : 'text-zinc-300 group-hover/btn:text-zinc-100 transition-colors'}`}>
-                  {outbound}
-                </span>
-                <div className={`flex items-center gap-1.5 relative z-10 ${isActive ? 'text-blue-500/70' : 'text-zinc-500 group-hover/btn:text-zinc-400'}`}>
-                   <Globe className="w-3 h-3" />
-                   <span className="text-[10px] uppercase font-bold tracking-widest">
-                     {outboundType}
-                   </span>
+                <div className="flex justify-between items-start w-full gap-2 relative z-10">
+                  <span className={`text-sm truncate font-medium ${isActive ? 'text-blue-400' : 'text-zinc-300 group-hover/btn:text-zinc-100 transition-colors'}`}>
+                    {outbound}
+                  </span>
+
+                  <button
+                    onClick={(e) => handleTestLatency(e, outbound)}
+                    disabled={latencyData?.testing}
+                    className={`shrink-0 p-1 rounded hover:bg-zinc-800/80 transition-colors ${latencyData?.testing ? 'opacity-50 cursor-wait' : ''} ${isActive ? 'text-blue-400 hover:text-blue-300' : 'text-zinc-500 hover:text-zinc-300'}`}
+                    title="Test Latency"
+                  >
+                    <Zap className={`w-3.5 h-3.5 ${latencyData?.testing ? 'animate-pulse' : ''}`} />
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-between w-full relative z-10">
+                  <div className={`flex items-center gap-1.5 ${isActive ? 'text-blue-500/70' : 'text-zinc-500 group-hover/btn:text-zinc-400'}`}>
+                     <Globe className="w-3 h-3" />
+                     <span className="text-[10px] uppercase font-bold tracking-widest">
+                       {outboundType}
+                     </span>
+                  </div>
+
+                  {latencyData && !latencyData.testing && (
+                    <span className={`text-[10px] font-mono font-medium px-1.5 py-0.5 rounded ${
+                      latencyData.error
+                        ? 'bg-red-500/10 text-red-400 border border-red-500/20'
+                        : latencyData.value < 200
+                          ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                          : latencyData.value < 500
+                            ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                            : 'bg-orange-500/10 text-orange-400 border border-orange-500/20'
+                    }`}>
+                      {latencyData.error ? 'Error' : `${latencyData.value}ms`}
+                    </span>
+                  )}
                 </div>
               </button>
             )
