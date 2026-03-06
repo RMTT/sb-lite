@@ -42,6 +42,13 @@ pub async fn update_custom_fields_handler(
     {
         Ok(_) => {
             info!("Custom fields updated");
+            // Regenerate config if there is an active one
+            if let Err(e) = crate::merge::generate_and_write_active_config(&state).await {
+                error!(
+                    "Failed to generate and write active config after updating custom fields: {}",
+                    e
+                );
+            }
             (StatusCode::OK, "Custom fields updated").into_response()
         }
         Err(e) => {
@@ -193,12 +200,12 @@ pub async fn update_config_handler(
     }
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(serde::Deserialize, Debug)]
 pub struct Sip008Data {
     pub servers: Option<Vec<Sip008Server>>,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(serde::Deserialize, Debug)]
 pub struct Sip008Server {
     pub server: String,
     pub server_port: u16,
@@ -430,6 +437,15 @@ pub async fn update_subscription_handler(
                                     .into_response();
                             }
                             info!("Successfully updated subscription: {}", url);
+                            // Regenerate config if there is an active one
+                            if let Err(e) =
+                                crate::merge::generate_and_write_active_config(&state).await
+                            {
+                                error!(
+                                    "Failed to generate and write active config after updating subscription: {}",
+                                    e
+                                );
+                            }
                             return (StatusCode::OK, "Subscription updated").into_response();
                         }
                         Err(e) => {

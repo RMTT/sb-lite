@@ -1,4 +1,5 @@
 mod handlers;
+mod merge;
 mod router;
 mod state;
 

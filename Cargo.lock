@@ -1518,6 +1518,7 @@ dependencies = [
  "env_logger",
  "log",
  "mime_guess",
+ "regex",
  "reqwest",
  "rust-embed",
  "serde",
