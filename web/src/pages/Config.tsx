@@ -186,7 +186,12 @@ export function Config() {
               toast.success(`Applied config ${filename} successfully!`)
               setActiveConfig(filename)
           } else {
-              throw new Error(`Failed to apply config: ${response.statusText}`)
+              let msg = response.statusText
+              try {
+                  const errorText = await response.text()
+                  if (errorText) msg = errorText
+              } catch { /* ignore */ }
+              throw new Error(`Failed to apply config: ${msg}`)
           }
       } catch (err) {
           toast.error(err instanceof Error ? err.message : 'Failed to apply config.')

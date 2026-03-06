@@ -81,6 +81,8 @@ async fn main() {
     let shared_state = AppState {
         state_directory: args.state_directory.clone(),
         persisted_state: Arc::new(RwLock::new(persisted_state)),
+        sing_box_path,
+        sing_box_process: Arc::new(tokio::sync::Mutex::new(None)),
     };
 
     let app = router::create_router(shared_state);

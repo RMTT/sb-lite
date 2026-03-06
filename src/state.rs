@@ -7,6 +7,8 @@ use tokio::sync::RwLock;
 pub struct AppState {
     pub state_directory: PathBuf,
     pub persisted_state: Arc<RwLock<PersistedState>>,
+    pub sing_box_path: PathBuf,
+    pub sing_box_process: Arc<tokio::sync::Mutex<Option<tokio::process::Child>>>,
 }
 
 #[derive(Serialize, Deserialize, Default, Clone)]
