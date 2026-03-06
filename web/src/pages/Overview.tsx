@@ -1,21 +1,20 @@
 import { useState, useEffect } from 'react'
+import { Square, Play, Router, Clock, Cpu, Download, Upload } from 'lucide-react'
 import { toast } from 'sonner'
-import { Router, Square, Play, Clock, Download, Upload, Cpu } from 'lucide-react'
 
-function formatBytes(bytes: number, decimals = 2) {
-  if (!+bytes) return '0 Bytes'
+function formatBytes(bytes: number) {
+  if (bytes === 0) return '0 Bytes'
   const k = 1024
-  const dm = decimals < 0 ? 0 : decimals
-  const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB']
+  const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB']
   const i = Math.floor(Math.log(bytes) / Math.log(k))
-  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
 }
 
-function formatUptime(startTimeString: string | null) {
-  if (!startTimeString) return '0s'
-  const startTime = new Date(startTimeString).getTime()
+function formatUptime(startTime: string | null) {
+  if (!startTime) return '0s'
+  const start = new Date(startTime).getTime()
   const now = new Date().getTime()
-  const diffInSeconds = Math.floor((now - startTime) / 1000)
+  const diffInSeconds = Math.floor((now - start) / 1000)
 
   if (diffInSeconds < 0) return '0s'
 
@@ -146,21 +145,21 @@ export function Overview() {
 
   return (
     <>
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
         {/* Main Control Panel */}
         <div className="bg-zinc-900/50 border border-zinc-800/50 rounded-xl overflow-hidden shadow-sm flex flex-col justify-between">
-          <div className="p-8 relative flex-1 flex flex-col">
+          <div className="p-6 relative flex-1 flex flex-col">
             <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-transparent pointer-events-none"></div>
 
-            <div className="relative flex justify-between items-start mb-12">
+            <div className="relative flex justify-between items-start mb-6">
               <div>
                 <div className="flex items-center gap-2 mb-2">
                   <div className={`size-2 rounded-full ${isRunning ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`}></div>
                   <span className={`text-xs font-bold uppercase tracking-widest ${isRunning ? 'text-emerald-500' : 'text-red-500'}`}>PROCESS STATUS</span>
                 </div>
-                <h2 className="text-3xl font-bold tracking-tight text-white">{isRunning ? 'Running' : 'Stopped'}</h2>
+                <h2 className="text-2xl font-bold tracking-tight text-white">{isRunning ? 'Running' : 'Stopped'}</h2>
               </div>
-              <div className="flex items-center gap-3 bg-zinc-950/50 px-4 py-2 rounded-lg border border-zinc-800/50">
+              <div className="flex items-center gap-3 bg-zinc-950/50 px-3 py-1.5 rounded-lg border border-zinc-800/50">
                 <span className="text-sm font-medium text-zinc-400">Auto Start</span>
                 <button
                   onClick={handleToggleAutoStart}
@@ -172,71 +171,71 @@ export function Overview() {
               </div>
             </div>
 
-            <div className="flex flex-col items-center justify-center flex-1 relative min-h-[160px]">
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 size-48 bg-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
-              <div className="size-20 rounded-full bg-zinc-900 border border-zinc-700/50 shadow-2xl flex items-center justify-center relative z-10 mb-4">
-                <Router className="w-10 h-10 text-zinc-400" strokeWidth={1.5} />
+            <div className="flex flex-col items-center justify-center flex-1 relative min-h-[100px]">
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 size-32 bg-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
+              <div className="size-16 rounded-full bg-zinc-900 border border-zinc-700/50 shadow-2xl flex items-center justify-center relative z-10 mb-2">
+                <Router className="w-8 h-8 text-zinc-400" strokeWidth={1.5} />
               </div>
               <div className="text-center relative z-10">
-                <div className="text-zinc-300 font-medium mb-1 text-sm">Core Version: {version || 'Unknown'}</div>
+                <div className="text-zinc-400 font-medium mb-1 text-xs">Core Version: {version || 'Unknown'}</div>
               </div>
             </div>
 
-            <div className="flex items-center justify-center gap-4 relative z-10 mt-12">
+            <div className="flex items-center justify-center gap-4 relative z-10 mt-6">
               <button
-                  className="flex flex-1 items-center justify-center gap-2 px-6 py-3 rounded-lg border border-red-500/20 bg-red-500/10 text-red-400 hover:bg-red-500/20 hover:text-red-300 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex flex-1 items-center justify-center gap-2 px-4 py-2 rounded-lg border border-red-500/20 bg-red-500/10 text-red-400 hover:bg-red-500/20 hover:text-red-300 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                   onClick={handleStop}
                   disabled={!isRunning || isLoading}
               >
-                <Square className="w-4 h-4 fill-current" /> Stop
+                <Square className="w-3.5 h-3.5 fill-current" /> Stop
               </button>
               <button
-                  className="flex flex-1 items-center justify-center gap-2 px-6 py-3 rounded-lg bg-white text-zinc-950 hover:bg-zinc-200 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex flex-1 items-center justify-center gap-2 px-4 py-2 rounded-lg bg-white text-zinc-950 hover:bg-zinc-200 transition-colors text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
                   onClick={handleStart}
                   disabled={isRunning || isLoading}
               >
-                <Play className="w-4 h-4 fill-current" /> Start
+                <Play className="w-3.5 h-3.5 fill-current" /> Start
               </button>
             </div>
           </div>
         </div>
 
         {/* Statistics Grid */}
-        <div className="grid grid-cols-2 gap-6 h-full">
-          <div className="bg-zinc-900/50 border border-zinc-800/50 rounded-xl p-6 shadow-sm flex flex-col justify-center h-full">
-            <div className="flex justify-between items-start mb-4">
+        <div className="grid grid-cols-2 gap-4 h-full">
+          <div className="bg-zinc-900/50 border border-zinc-800/50 rounded-xl p-5 shadow-sm flex flex-col justify-center h-full">
+            <div className="flex justify-between items-start mb-2">
               <span className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase">UPTIME</span>
-              <Clock className="w-4 h-4 text-blue-500" />
+              <Clock className="w-3.5 h-3.5 text-blue-500" />
             </div>
             <div className="flex items-baseline gap-2 mt-auto">
-              <span className="text-2xl font-bold tracking-tight text-white">{isRunning ? uptimeStr : '0s'}</span>
+              <span className="text-xl font-bold tracking-tight text-white">{isRunning ? uptimeStr : '0s'}</span>
             </div>
           </div>
-          <div className="bg-zinc-900/50 border border-zinc-800/50 rounded-xl p-6 shadow-sm flex flex-col justify-center h-full">
-            <div className="flex justify-between items-start mb-4">
+          <div className="bg-zinc-900/50 border border-zinc-800/50 rounded-xl p-5 shadow-sm flex flex-col justify-center h-full">
+            <div className="flex justify-between items-start mb-2">
               <span className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase">MEMORY</span>
-              <Cpu className="w-4 h-4 text-blue-500" />
+              <Cpu className="w-3.5 h-3.5 text-blue-500" />
             </div>
             <div className="flex items-baseline gap-2 mt-auto">
-              <span className="text-2xl font-bold tracking-tight text-white">{isRunning ? formatBytes(memory) : '0 Bytes'}</span>
+              <span className="text-xl font-bold tracking-tight text-white">{isRunning ? formatBytes(memory) : '0 Bytes'}</span>
             </div>
           </div>
-          <div className="bg-zinc-900/50 border border-zinc-800/50 rounded-xl p-6 shadow-sm flex flex-col justify-center h-full">
-            <div className="flex justify-between items-start mb-4">
+          <div className="bg-zinc-900/50 border border-zinc-800/50 rounded-xl p-5 shadow-sm flex flex-col justify-center h-full">
+            <div className="flex justify-between items-start mb-2">
               <span className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase">DOWNLOAD</span>
-              <Download className="w-4 h-4 text-blue-500" />
+              <Download className="w-3.5 h-3.5 text-blue-500" />
             </div>
             <div className="flex items-baseline gap-2 mt-auto">
-              <span className="text-2xl font-bold tracking-tight text-white">{isRunning ? formatBytes(downloadTotal) : '0 Bytes'}</span>
+              <span className="text-xl font-bold tracking-tight text-white">{isRunning ? formatBytes(downloadTotal) : '0 Bytes'}</span>
             </div>
           </div>
-          <div className="bg-zinc-900/50 border border-zinc-800/50 rounded-xl p-6 shadow-sm flex flex-col justify-center h-full">
-            <div className="flex justify-between items-start mb-4">
+          <div className="bg-zinc-900/50 border border-zinc-800/50 rounded-xl p-5 shadow-sm flex flex-col justify-center h-full">
+            <div className="flex justify-between items-start mb-2">
               <span className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase">UPLOAD</span>
-              <Upload className="w-4 h-4 text-blue-500" />
+              <Upload className="w-3.5 h-3.5 text-blue-500" />
             </div>
             <div className="flex items-baseline gap-2 mt-auto">
-              <span className="text-2xl font-bold tracking-tight text-white">{isRunning ? formatBytes(uploadTotal) : '0 Bytes'}</span>
+              <span className="text-xl font-bold tracking-tight text-white">{isRunning ? formatBytes(uploadTotal) : '0 Bytes'}</span>
             </div>
           </div>
         </div>
