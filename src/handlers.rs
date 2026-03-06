@@ -495,6 +495,7 @@ pub struct SingBoxStatusResponse {
     pub version: Option<String>,
     pub is_running: bool,
     pub auto_start: bool,
+    pub start_time: Option<chrono::DateTime<chrono::Utc>>,
 }
 
 pub async fn get_sing_box_status_handler(State(state): State<AppState>) -> Response {
@@ -526,6 +527,8 @@ pub async fn get_sing_box_status_handler(State(state): State<AppState>) -> Respo
         }
     }
 
+    let start_time = *state.start_time.lock().await;
+
     let auto_start = state.get_auto_start().await;
 
     (
@@ -534,6 +537,7 @@ pub async fn get_sing_box_status_handler(State(state): State<AppState>) -> Respo
             version,
             is_running,
             auto_start,
+            start_time,
         }),
     )
         .into_response()
@@ -564,6 +568,8 @@ pub async fn stop_sing_box_handler(State(state): State<AppState>) -> Response {
                 .into_response();
         }
         let _ = child.wait().await;
+        let mut start_time_lock = state.start_time.lock().await;
+        *start_time_lock = None;
         info!("sing-box stopped");
         (StatusCode::OK, "sing-box stopped").into_response()
     } else {
@@ -588,6 +594,182 @@ pub async fn toggle_auto_start_handler(
         Err(e) => {
             error!("Failed to save state: {}", e);
             (StatusCode::INTERNAL_SERVER_ERROR, "Failed to save state").into_response()
+        }
+    }
+}
+
+pub async fn get_connections_handler(State(state): State<AppState>) -> Response {
+    let (_, _, external_controller) = state.get_custom_fields().await;
+    let url = format!("http://{}/connections", external_controller);
+
+    let client = reqwest::Client::new();
+    match client.get(&url).send().await {
+        Ok(resp) => {
+            let status = resp.status();
+            if status.is_success() {
+                if let Ok(text) = resp.text().await {
+                    return (
+                        StatusCode::OK,
+                        [(axum::http::header::CONTENT_TYPE, "application/json")],
+                        text,
+                    )
+                        .into_response();
+                }
+            }
+            (
+                StatusCode::BAD_GATEWAY,
+                format!("Failed to fetch connections: HTTP {}", status),
+            )
+                .into_response()
+        }
+        Err(e) => {
+            error!("Failed to fetch connections: {}", e);
+            (
+                StatusCode::BAD_GATEWAY,
+                format!("Failed to fetch connections: {}", e),
+            )
+                .into_response()
+        }
+    }
+}
+
+pub async fn get_proxies_handler(State(state): State<AppState>) -> Response {
+    let (_, _, external_controller) = state.get_custom_fields().await;
+    let url = format!("http://{}/proxies", external_controller);
+
+    let client = reqwest::Client::new();
+    match client.get(&url).send().await {
+        Ok(resp) => {
+            let status = resp.status();
+            if status.is_success() {
+                if let Ok(text) = resp.text().await {
+                    return (
+                        StatusCode::OK,
+                        [(axum::http::header::CONTENT_TYPE, "application/json")],
+                        text,
+                    )
+                        .into_response();
+                }
+            }
+            (
+                StatusCode::BAD_GATEWAY,
+                format!("Failed to fetch proxies: HTTP {}", status),
+            )
+                .into_response()
+        }
+        Err(e) => {
+            error!("Failed to fetch proxies: {}", e);
+            (
+                StatusCode::BAD_GATEWAY,
+                format!("Failed to fetch proxies: {}", e),
+            )
+                .into_response()
+        }
+    }
+}
+
+#[derive(Deserialize)]
+#[derive(Serialize)]
+pub struct UpdateProxyRequest {
+    pub name: String,
+}
+
+pub async fn update_proxy_handler(
+    State(state): State<AppState>,
+    Path(selector_name): Path<String>,
+    Json(payload): Json<UpdateProxyRequest>,
+) -> Response {
+    let (_, _, external_controller) = state.get_custom_fields().await;
+    let url = format!("http://{}/proxies/{}", external_controller, selector_name);
+
+    let client = reqwest::Client::new();
+    match client.put(&url).json(&payload).send().await {
+        Ok(resp) => {
+            let status = resp.status();
+            if status.is_success() {
+                return (StatusCode::NO_CONTENT).into_response();
+            }
+            (
+                StatusCode::BAD_GATEWAY,
+                format!("Failed to update proxy: HTTP {}", status),
+            )
+                .into_response()
+        }
+        Err(e) => {
+            error!("Failed to update proxy {}: {}", selector_name, e);
+            (
+                StatusCode::BAD_GATEWAY,
+                format!("Failed to update proxy: {}", e),
+            )
+                .into_response()
+        }
+    }
+}
+
+
+use axum::extract::Query;
+
+#[derive(serde::Deserialize)]
+pub struct ProxyDelayQuery {
+    url: Option<String>,
+    timeout: Option<u32>,
+}
+
+pub async fn get_proxy_delay_handler(
+    State(state): State<AppState>,
+    Path(proxy_name): Path<String>,
+    Query(query): Query<ProxyDelayQuery>,
+) -> Response {
+    let controller_address = {
+        let state_guard = state.persisted_state.read().await;
+        state_guard.external_controller.clone()
+    };
+
+    if controller_address.is_empty() {
+        return (
+            StatusCode::SERVICE_UNAVAILABLE,
+            axum::Json(serde_json::json!({
+                "error": "sing-box API is not configured or running."
+            })),
+        ).into_response();
+    }
+
+    let mut query_params = vec![];
+    if let Some(url) = query.url {
+        query_params.push(format!("url={}", url));
+    }
+    if let Some(timeout) = query.timeout {
+        query_params.push(format!("timeout={}", timeout));
+    }
+
+    let query_string = if query_params.is_empty() {
+        String::new()
+    } else {
+        format!("?{}", query_params.join("&"))
+    };
+
+    let url = format!("http://{}/proxies/{}/delay{}", controller_address, proxy_name, query_string);
+    let client = reqwest::Client::new();
+    match client.get(&url).send().await {
+        Ok(res) => {
+            let status = res.status();
+            match res.text().await {
+                Ok(text) => (status, text).into_response(),
+                Err(e) => {
+                    error!("Failed to read proxy delay response: {}", e);
+                    (
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        axum::Json(serde_json::json!({ "error": e.to_string() })),
+                    ).into_response()
+                }
+            }
+        }
+        Err(e) => {
+            error!("Failed to fetch proxy delay: {}", e);
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                axum::Json(serde_json::json!({ "error": e.to_string() })),
+            ).into_response()
         }
     }
 }
