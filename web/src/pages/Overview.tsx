@@ -144,7 +144,7 @@ export function Overview() {
 
   return (
     <>
-      <div className="bg-zinc-900/50 border border-zinc-800/50 rounded-xl overflow-hidden shadow-sm">
+      <div className="max-w-2xl bg-zinc-900/50 border border-zinc-800/50 rounded-xl overflow-hidden shadow-sm">
         <div className="p-8 relative">
           <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-transparent pointer-events-none"></div>
           <div className="relative flex justify-between items-start mb-16">

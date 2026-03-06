@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
+import { Network, LayoutDashboard, Settings } from 'lucide-react'
 
 export function DashboardLayout() {
   const [isCollapsed, setIsCollapsed] = useState(() => {
@@ -25,7 +26,7 @@ export function DashboardLayout() {
            onClick={() => setIsCollapsed(!isCollapsed)}
         >
           <div className="size-8 rounded-lg bg-blue-600 flex items-center justify-center text-white shadow-lg shadow-blue-600/20 shrink-0">
-            <span className="material-symbols-outlined !text-xl">hub</span>
+            <Network className="w-5 h-5 text-white" />
           </div>
           <div className={`flex flex-col whitespace-nowrap transition-all duration-300 ${isCollapsed ? 'opacity-0 w-0' : 'opacity-100 w-auto'}`}>
             <h1 className="text-sm font-bold tracking-tight text-zinc-100 leading-tight">sing-box</h1>
@@ -41,7 +42,7 @@ export function DashboardLayout() {
               isActive ? 'bg-zinc-800 text-white' : 'text-zinc-400 hover:bg-zinc-900/50 hover:text-zinc-100'
             }`}
           >
-            <span className="material-symbols-outlined !text-[20px] shrink-0">dashboard</span>
+            <LayoutDashboard className="w-5 h-5 shrink-0" strokeWidth={2} />
             <span className={`text-sm font-medium whitespace-nowrap transition-all duration-300 ${isCollapsed ? 'opacity-0 w-0 hidden' : 'opacity-100 w-auto'}`}>Overview</span>
           </NavLink>
 
@@ -51,7 +52,7 @@ export function DashboardLayout() {
               isActive ? 'bg-zinc-800 text-white' : 'text-zinc-400 hover:bg-zinc-900/50 hover:text-zinc-100'
             }`}
           >
-            <span className="material-symbols-outlined !text-[20px] shrink-0">settings</span>
+            <Settings className="w-5 h-5 shrink-0" strokeWidth={2} />
             <span className={`text-sm font-medium whitespace-nowrap transition-all duration-300 ${isCollapsed ? 'opacity-0 w-0 hidden' : 'opacity-100 w-auto'}`}>Config</span>
           </NavLink>
         </nav>

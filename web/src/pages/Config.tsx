@@ -1,3 +1,4 @@
+import { Upload, Plus, FileText, Play, Edit2, Trash2, GitMerge, Link, RefreshCw, X, Code } from 'lucide-react'
 import { useState, useEffect, useRef } from 'react'
 import Editor from '@monaco-editor/react'
 import { toast } from 'sonner'
@@ -544,7 +545,7 @@ export function Config() {
                 disabled={isLoading || isSaving}
                 className="px-4 py-2 bg-transparent border border-zinc-800/50 hover:bg-zinc-800/50 text-zinc-300 text-xs font-medium rounded-md flex items-center gap-2 transition-colors disabled:opacity-50"
             >
-              <span className="material-symbols-outlined !text-[18px]">cloud_upload</span>
+              <Upload className="w-4 h-4" />
               Upload
             </button>
             <button
@@ -555,7 +556,7 @@ export function Config() {
                 disabled={isLoading || isSaving}
                 className="px-4 py-2 bg-primary hover:bg-blue-600 text-white text-xs font-semibold rounded-md flex items-center gap-2 transition-colors shadow-md shadow-primary/10 disabled:opacity-50"
             >
-              <span className="material-symbols-outlined !text-[18px]">add</span>
+              <Plus className="w-4 h-4" />
               New Config
             </button>
             <input
@@ -577,7 +578,7 @@ export function Config() {
                     <div key={filename} className={`p-4 flex items-center justify-between transition-colors ${activeConfig === filename ? 'bg-zinc-800/20' : 'hover:bg-zinc-800/10'}`}>
                         <div className="flex items-center gap-4">
                             <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
-                                <span className="material-symbols-outlined !text-[24px]">description</span>
+                                <FileText className="w-6 h-6" />
                             </div>
                             <div className="flex flex-col">
                                 <div className="flex items-center gap-2">
@@ -599,7 +600,7 @@ export function Config() {
                                     disabled={isLoading}
                                     className="px-3 py-1.5 text-xs font-semibold rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 transition-colors flex items-center gap-1.5"
                                 >
-                                    <span className="material-symbols-outlined !text-[16px]">play_arrow</span> Apply
+                                    <Play className="w-4 h-4" /> Apply
                                 </button>
                             )}
                             <button
@@ -607,7 +608,7 @@ export function Config() {
                                 disabled={isLoading}
                                 className="w-8 h-8 flex items-center justify-center rounded text-zinc-400 hover:text-white hover:bg-zinc-800/80 transition-colors"
                             >
-                                <span className="material-symbols-outlined !text-[18px]">edit</span>
+                                <Edit2 className="w-4 h-4" />
                             </button>
                             <button
                                 onClick={() => setConfigToDelete(filename)}
@@ -615,7 +616,7 @@ export function Config() {
                                 className="w-8 h-8 flex items-center justify-center rounded text-zinc-500 hover:text-red-400 hover:bg-zinc-800/80 transition-colors disabled:opacity-30 disabled:hover:bg-transparent"
                                 title={activeConfig === filename ? "Cannot delete active config" : "Delete Configuration"}
                             >
-                                <span className="material-symbols-outlined !text-[18px]">delete</span>
+                                <Trash2 className="w-4 h-4" />
                             </button>
                         </div>
                     </div>
@@ -636,7 +637,7 @@ export function Config() {
               className="w-8 h-8 flex items-center justify-center rounded border border-zinc-800/50 text-zinc-400 hover:text-white hover:bg-zinc-800/50 transition-colors"
               title="Show merged config"
           >
-            <span className="material-symbols-outlined !text-[18px]">merge</span>
+            <GitMerge className="w-4 h-4" />
           </button>
         </div>
 
@@ -682,7 +683,7 @@ export function Config() {
                       <div key={idx} className="flex items-center justify-between p-4 bg-[#09090b]/50 border border-zinc-800/50 rounded-lg group">
                         <div className="flex items-center gap-4">
                           <div className="w-8 h-8 rounded bg-zinc-800/50 flex items-center justify-center text-zinc-400">
-                            <span className="material-symbols-outlined !text-[18px]">link</span>
+                            <Link className="w-4 h-4" />
                           </div>
                           <div>
                             <div className="flex items-center gap-2 mb-1">
@@ -705,14 +706,14 @@ export function Config() {
                               className="w-8 h-8 flex items-center justify-center rounded text-zinc-400 hover:text-white hover:bg-zinc-800/80 transition-colors disabled:opacity-50"
                               title="Update Subscription"
                           >
-                            <span className={`material-symbols-outlined !text-[18px] ${updatingIndex === idx ? 'animate-spin' : ''}`}>sync</span>
+                            <RefreshCw className={`w-4 h-4 ${updatingIndex === idx ? 'animate-spin' : ''}`} />
                           </button>
                           <button
                               onClick={() => handleRemoveUrl(idx)}
                               className="w-8 h-8 flex items-center justify-center rounded text-zinc-500 hover:text-red-400 hover:bg-zinc-800/80 transition-colors"
                               title="Remove URL"
                           >
-                            <span className="material-symbols-outlined !text-[18px]">delete</span>
+                            <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
                       </div>
@@ -794,7 +795,7 @@ export function Config() {
                                 className="text-zinc-500 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
                                 title="Remove Selector"
                             >
-                                <span className="material-symbols-outlined !text-[18px]">delete</span>
+                                <Trash2 className="w-4 h-4" />
                             </button>
                           </div>
                         </div>
@@ -856,7 +857,7 @@ export function Config() {
                   <div className="p-5 border-b border-zinc-800 flex justify-between items-center bg-zinc-900/50">
                       <h3 className="text-base font-semibold text-white">Upload Configuration</h3>
                       <button onClick={() => setIsUploadOpen(false)} className="text-zinc-500 hover:text-white transition-colors">
-                          <span className="material-symbols-outlined !text-[20px]">close</span>
+                          <X className="w-5 h-5" />
                       </button>
                   </div>
                   <div className="p-6">
@@ -898,7 +899,7 @@ export function Config() {
               <div className="bg-[#0c0c0e] border border-zinc-800 rounded-xl shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95 duration-200">
                   <div className="p-6 space-y-4">
                       <div className="w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center mb-4">
-                          <span className="material-symbols-outlined !text-[24px] text-red-500">delete</span>
+                          <Trash2 className="w-6 h-6 text-red-500" />
                       </div>
                       <h3 className="text-lg font-semibold text-white">
                           Delete Configuration?
@@ -934,7 +935,7 @@ export function Config() {
                   <div className="p-5 border-b border-zinc-800 flex justify-between items-center bg-zinc-900/50">
                       <h3 className="text-base font-semibold text-white">Create Configuration</h3>
                       <button onClick={() => setIsCreateOpen(false)} className="text-zinc-500 hover:text-white transition-colors">
-                          <span className="material-symbols-outlined !text-[20px]">close</span>
+                          <X className="w-5 h-5" />
                       </button>
                   </div>
                   <div className="p-6">
@@ -976,7 +977,7 @@ export function Config() {
               <div className="flex flex-col w-full max-w-5xl h-full max-h-[90vh] bg-[#0c0c0e] border border-zinc-800 shadow-2xl rounded-xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
                   <div className="flex items-center justify-between p-4 border-b border-zinc-800 bg-zinc-900/50">
                       <div className="flex items-center gap-3">
-                          <span className="material-symbols-outlined !text-[20px] text-zinc-400">data_object</span>
+                          <Code className="w-5 h-5 text-zinc-400" />
                           <h3 className="text-base font-medium text-white">Merged Configuration (Read-only)</h3>
                       </div>
                       <button
@@ -984,7 +985,7 @@ export function Config() {
                           className="p-2 rounded text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
                           title="Close"
                       >
-                          <span className="material-symbols-outlined !text-[20px]">close</span>
+                          <X className="w-5 h-5" />
                       </button>
                   </div>
 
@@ -1014,7 +1015,7 @@ export function Config() {
               <div className="flex flex-col w-full max-w-5xl h-full max-h-[90vh] bg-[#0c0c0e] border border-zinc-800 shadow-2xl rounded-xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
                   <div className="flex items-center justify-between p-4 border-b border-zinc-800 bg-zinc-900/50">
                       <div className="flex items-center gap-3">
-                          <span className="material-symbols-outlined !text-[20px] text-zinc-400">edit</span>
+                          <Edit2 className="w-5 h-5 text-zinc-400" />
                           <div className="flex items-baseline gap-3">
                             <h3 className="text-base font-medium text-white">{editingFileName}</h3>
                             {hasEditorChanges && <span className="text-xs font-medium text-amber-500 normal-case">(Unsaved changes)</span>}
@@ -1046,7 +1047,7 @@ export function Config() {
                               className="p-2 rounded text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
                               title="Close Editor"
                           >
-                              <span className="material-symbols-outlined !text-[20px]">close</span>
+                              <X className="w-5 h-5" />
                           </button>
                       </div>
                   </div>
