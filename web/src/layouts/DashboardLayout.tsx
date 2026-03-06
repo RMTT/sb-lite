@@ -1,103 +1,98 @@
 import { useState, useEffect } from 'react'
-import { NavLink, Outlet } from 'react-router-dom'
-import { LayoutDashboard, Settings, User } from 'lucide-react'
+import { NavLink, Outlet, useLocation } from 'react-router-dom'
 
 export function DashboardLayout() {
   const [isCollapsed, setIsCollapsed] = useState(() => {
     const saved = localStorage.getItem('sidebar-collapsed')
     return saved === 'true'
   })
+  const location = useLocation()
 
   useEffect(() => {
     localStorage.setItem('sidebar-collapsed', String(isCollapsed))
   }, [isCollapsed])
 
   return (
-    <div className="flex h-screen bg-[#09090b] text-zinc-100 font-sans">
+    <div className="flex h-screen overflow-hidden bg-[#09090b] text-zinc-100 antialiased font-sans">
       {/* Sidebar */}
       <aside
         className={`${
           isCollapsed ? 'w-20' : 'w-64'
-        } shrink-0 bg-[#09090b] border-r border-zinc-800/50 z-10 flex flex-col transition-all duration-300 ease-in-out`}
+        } border-r border-zinc-800/50 flex flex-col bg-zinc-950 transition-all duration-300 ease-in-out shrink-0 z-20`}
       >
-        {/* Brand / Title */}
-        <div className="flex h-16 shrink-0 items-center px-4 mb-4 mt-2">
-          <div className="flex items-center gap-3 overflow-hidden cursor-pointer" onClick={() => setIsCollapsed(!isCollapsed)}>
-            <div className="w-8 h-8 rounded bg-blue-600 flex items-center justify-center shrink-0">
-               <Settings className="h-5 w-5 text-white" />
-            </div>
-            <div
-              className={`flex flex-col whitespace-nowrap transition-all duration-300 ${
-                isCollapsed ? 'opacity-0 w-0' : 'opacity-100 w-auto'
-              }`}
-            >
-              <span className="font-bold text-base leading-tight tracking-tight text-zinc-100">sing-box</span>
-              <span className="text-[10px] font-medium text-zinc-500 tracking-wider">NETWORK CORE</span>
-            </div>
+        <div
+           className="p-6 flex items-center gap-3 cursor-pointer overflow-hidden"
+           onClick={() => setIsCollapsed(!isCollapsed)}
+        >
+          <div className="size-8 rounded-lg bg-blue-600 flex items-center justify-center text-white shadow-lg shadow-blue-600/20 shrink-0">
+            <span className="material-symbols-outlined !text-xl">hub</span>
+          </div>
+          <div className={`flex flex-col whitespace-nowrap transition-all duration-300 ${isCollapsed ? 'opacity-0 w-0' : 'opacity-100 w-auto'}`}>
+            <h1 className="text-sm font-bold tracking-tight text-zinc-100 leading-tight">sing-box</h1>
+            <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-semibold leading-tight">NETWORK CORE</p>
           </div>
         </div>
 
-        {/* Navigation */}
-        <ul className="flex-1 px-3 space-y-1 overflow-y-auto overflow-x-hidden custom-scrollbar">
-          <li>
-            <NavLink
-              to="/"
-              end
-              className={({ isActive }) => `flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                isActive ? 'bg-zinc-800/50 text-zinc-100' : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/30'
-              }`}
-            >
-              <LayoutDashboard className="h-4 w-4 shrink-0" />
-              <span
-                className={`whitespace-nowrap transition-all duration-300 ${
-                  isCollapsed ? 'opacity-0 w-0 hidden' : 'opacity-100 w-auto'
-                }`}
-              >
-                Overview
-              </span>
-            </NavLink>
-          </li>
-          <li>
-            <NavLink
-              to="/config"
-              className={({ isActive }) => `flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                isActive ? 'bg-zinc-800/50 text-zinc-100' : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/30'
-              }`}
-            >
-              <Settings className="h-4 w-4 shrink-0" />
-              <span
-                className={`whitespace-nowrap transition-all duration-300 ${
-                  isCollapsed ? 'opacity-0 w-0 hidden' : 'opacity-100 w-auto'
-                }`}
-              >
-                Configuration
-              </span>
-            </NavLink>
-          </li>
-        </ul>
+        <nav className="flex-1 px-4 space-y-1 overflow-y-auto overflow-x-hidden custom-scrollbar">
+          <NavLink
+            to="/"
+            end
+            className={({ isActive }) => `flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+              isActive ? 'bg-zinc-800 text-white' : 'text-zinc-400 hover:bg-zinc-900/50 hover:text-zinc-100'
+            }`}
+          >
+            <span className="material-symbols-outlined !text-[20px] shrink-0">dashboard</span>
+            <span className={`text-sm font-medium whitespace-nowrap transition-all duration-300 ${isCollapsed ? 'opacity-0 w-0 hidden' : 'opacity-100 w-auto'}`}>Overview</span>
+          </NavLink>
 
-        {/* User Profile / Version Footer */}
-        <div className="p-4 border-t border-zinc-800/50">
-             <div className="flex items-center gap-3 overflow-hidden">
-                <div className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center shrink-0">
-                    <User className="h-4 w-4 text-zinc-400" />
+          <NavLink
+            to="/config"
+            className={({ isActive }) => `flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+              isActive ? 'bg-zinc-800 text-white' : 'text-zinc-400 hover:bg-zinc-900/50 hover:text-zinc-100'
+            }`}
+          >
+            <span className="material-symbols-outlined !text-[20px] shrink-0">settings</span>
+            <span className={`text-sm font-medium whitespace-nowrap transition-all duration-300 ${isCollapsed ? 'opacity-0 w-0 hidden' : 'opacity-100 w-auto'}`}>Config</span>
+          </NavLink>
+        </nav>
+
+        <div className="p-6 border-t border-zinc-800/50 overflow-hidden">
+             <div className="flex items-center gap-3">
+                <div className="size-8 rounded-full bg-zinc-800 flex items-center justify-center shrink-0">
+                    <span className="material-symbols-outlined !text-sm text-zinc-400">person</span>
                 </div>
-                <div
-                    className={`flex flex-col whitespace-nowrap transition-all duration-300 ${
-                        isCollapsed ? 'opacity-0 w-0' : 'opacity-100 w-auto'
-                    }`}
-                >
-                    <span className="text-sm font-medium text-zinc-200">System Admin</span>
+                <div className={`flex flex-col whitespace-nowrap transition-all duration-300 ${isCollapsed ? 'opacity-0 w-0' : 'opacity-100 w-auto'}`}>
+                    <span className="text-xs font-semibold text-zinc-300">Admin User</span>
                     <span className="text-[10px] text-zinc-500">v1.8.0-rc.1</span>
                 </div>
              </div>
         </div>
       </aside>
 
-      {/* Main Content */}
-      <main className="flex-1 overflow-y-auto bg-[#09090b] custom-scrollbar relative">
-        <div className="max-w-7xl mx-auto p-6 lg:p-10">
-          <Outlet />
+      {/* Main Content Area */}
+      <main className="flex-1 overflow-y-auto relative bg-[#09090b] custom-scrollbar">
+        {/* Top Header */}
+        <header className="sticky top-0 z-10 flex items-center justify-between px-8 py-4 border-b border-zinc-800/50 bg-[#09090b]/80 backdrop-blur-md">
+           <div className="flex items-center gap-2">
+               <span className="text-xs font-medium text-zinc-500">Pages</span>
+               <span className="material-symbols-outlined !text-sm text-zinc-600">chevron_right</span>
+               <span className="text-sm font-semibold text-zinc-300">
+                  {location.pathname === '/' ? 'Dashboard Overview' : 'Configuration'}
+               </span>
+           </div>
+           <div className="flex items-center gap-3">
+               <button className="size-9 rounded-lg border border-zinc-800/50 flex items-center justify-center text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900/50 transition-colors">
+                   <span className="material-symbols-outlined !text-xl">notifications</span>
+               </button>
+               <button className="size-9 rounded-lg border border-zinc-800/50 flex items-center justify-center text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900/50 transition-colors">
+                   <span className="material-symbols-outlined !text-xl">search</span>
+               </button>
+           </div>
+        </header>
+
+        {/* Content Container */}
+        <div className="max-w-5xl mx-auto px-8 py-10 space-y-8">
+            <Outlet />
         </div>
       </main>
     </div>
