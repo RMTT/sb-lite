@@ -136,11 +136,11 @@ pub async fn generate_and_write_active_config(state: &AppState) -> Result<(), St
         if !config["experimental"]
             .as_object()
             .unwrap()
-            .contains_key("v2ray_api")
+            .contains_key("clash_api")
         {
-            config["experimental"]["v2ray_api"] = serde_json::json!({});
+            config["experimental"]["clash_api"] = serde_json::json!({});
         }
-        config["experimental"]["v2ray_api"]["external_controller"] =
+        config["experimental"]["clash_api"]["external_controller"] =
             serde_json::json!(external_controller);
     }
 
