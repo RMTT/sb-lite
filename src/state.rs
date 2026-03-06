@@ -12,6 +12,8 @@ pub struct AppState {
 #[derive(Serialize, Deserialize, Default, Clone)]
 pub struct Subscription {
     pub url: String,
+    #[serde(default)]
+    pub prefix: Option<String>,
     pub last_fetched: Option<chrono::DateTime<chrono::Utc>>,
     pub raw_data: Option<String>,
 }

@@ -46,10 +46,17 @@ pub async fn generate_and_write_active_config(state: &AppState) -> Result<(), St
             if let Ok(sip_data) = serde_json::from_str::<Sip008Data>(&raw) {
                 if let Some(servers) = sip_data.servers {
                     for server in servers {
-                        let tag = server
+                        let mut tag = server
                             .remarks
                             .clone()
                             .unwrap_or_else(|| server.server.clone());
+
+                        if let Some(prefix) = &sub.prefix {
+                            if !prefix.is_empty() {
+                                tag = format!("{} {}", prefix, tag);
+                            }
+                        }
+
                         let mut outbound = json!({
                             "type": "shadowsocks",
                             "tag": tag.clone(),

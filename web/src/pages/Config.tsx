@@ -17,6 +17,7 @@ export interface Selector {
 
 export interface Subscription {
     url: string
+    prefix?: string
     last_fetched: string | null
     raw_data: string | null
 }
@@ -332,6 +333,7 @@ export function Config() {
   });
 
   const [newUrl, setNewUrl] = useState('')
+  const [newPrefix, setNewPrefix] = useState('')
 
   const handleAddUrl = async () => {
       const urlToAdd = newUrl.trim()
@@ -364,12 +366,14 @@ export function Config() {
 
           const newSub: Subscription = {
               url: urlToAdd,
+              prefix: newPrefix.trim() || undefined,
               last_fetched: validationData.last_fetched,
               raw_data: validationData.raw_data
           }
           const updatedSubs = [...subscriptions, newSub]
           setSubscriptions(updatedSubs)
           setNewUrl('')
+          setNewPrefix('')
 
           setIsSavingCustomFields(true)
           const response = await fetch('/api/custom-fields', {
@@ -629,21 +633,33 @@ export function Config() {
               {/* Subscription URLs Section */}
               <div className="space-y-4">
                   <h3 className="text-sm font-medium text-base-content/80">Subscription URLs</h3>
-                  <div className="flex gap-2">
-                      <input
-                          type="text"
-                          value={newUrl}
-                          onChange={(e) => setNewUrl(e.target.value)}
-                          placeholder="https://example.com/subscribe"
-                          className="flex-1 bg-base-100 border border-base-300 rounded-md px-3 py-2 text-sm text-base-content focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500"
-                          onKeyDown={(e) => {
-                              if (e.key === 'Enter') handleAddUrl()
-                          }}
-                      />
+                  <div className="flex gap-2 items-start">
+                      <div className="flex-1 flex gap-2">
+                          <input
+                              type="text"
+                              value={newUrl}
+                              onChange={(e) => setNewUrl(e.target.value)}
+                              placeholder="https://example.com/subscribe"
+                              className="flex-1 bg-base-100 border border-base-300 rounded-md px-3 py-2 text-sm text-base-content focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500"
+                              onKeyDown={(e) => {
+                                  if (e.key === 'Enter') handleAddUrl()
+                              }}
+                          />
+                          <input
+                              type="text"
+                              value={newPrefix}
+                              onChange={(e) => setNewPrefix(e.target.value)}
+                              placeholder="Prefix (Optional)"
+                              className="w-40 bg-base-100 border border-base-300 rounded-md px-3 py-2 text-sm text-base-content focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500"
+                              onKeyDown={(e) => {
+                                  if (e.key === 'Enter') handleAddUrl()
+                              }}
+                          />
+                      </div>
                       <button
                           onClick={handleAddUrl}
                           disabled={!newUrl.trim() || isAddingUrl}
-                          className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-base-300 text-base-content rounded-md hover:bg-base-300/80 active:scale-95 transition-all shadow-sm disabled:opacity-50"
+                          className="flex items-center justify-center gap-2 px-4 py-2 h-[38px] text-sm font-medium bg-base-300 text-base-content rounded-md hover:bg-base-300/80 active:scale-95 transition-all shadow-sm disabled:opacity-50 whitespace-nowrap"
                       >
                           {isAddingUrl ? (
                               <RefreshCw className="h-4 w-4 animate-spin" />
@@ -663,8 +679,15 @@ export function Config() {
                           {subscriptions.map((sub, idx) => (
                               <li key={idx} className="flex flex-col bg-base-100 border border-zinc-800 rounded-md px-3 py-2 text-sm">
                                   <div className="flex items-center justify-between">
-                                      <span className="text-base-content/80 truncate mr-4">{sub.url}</span>
-                                      <div className="flex items-center gap-2">
+                                      <div className="flex items-center gap-3 truncate mr-4">
+                                          <span className="text-base-content/80 truncate">{sub.url}</span>
+                                          {sub.prefix && (
+                                              <span className="badge badge-sm badge-outline text-xs opacity-70 whitespace-nowrap shrink-0">
+                                                  Prefix: {sub.prefix}
+                                              </span>
+                                          )}
+                                      </div>
+                                      <div className="flex items-center gap-2 shrink-0">
                                           <button
                                               onClick={() => handleUpdateSubscription(idx)}
                                               type="button"
