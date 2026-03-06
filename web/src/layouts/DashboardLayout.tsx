@@ -55,18 +55,6 @@ export function DashboardLayout() {
             <span className={`text-sm font-medium whitespace-nowrap transition-all duration-300 ${isCollapsed ? 'opacity-0 w-0 hidden' : 'opacity-100 w-auto'}`}>Config</span>
           </NavLink>
         </nav>
-
-        <div className="p-6 border-t border-zinc-800/50 overflow-hidden">
-             <div className="flex items-center gap-3">
-                <div className="size-8 rounded-full bg-zinc-800 flex items-center justify-center shrink-0">
-                    <span className="material-symbols-outlined !text-sm text-zinc-400">person</span>
-                </div>
-                <div className={`flex flex-col whitespace-nowrap transition-all duration-300 ${isCollapsed ? 'opacity-0 w-0' : 'opacity-100 w-auto'}`}>
-                    <span className="text-xs font-semibold text-zinc-300">Admin User</span>
-                    <span className="text-[10px] text-zinc-500">v1.8.0-rc.1</span>
-                </div>
-             </div>
-        </div>
       </aside>
 
       {/* Main Content Area */}
@@ -74,24 +62,14 @@ export function DashboardLayout() {
         {/* Top Header */}
         <header className="sticky top-0 z-10 flex items-center justify-between px-8 py-4 border-b border-zinc-800/50 bg-[#09090b]/80 backdrop-blur-md">
            <div className="flex items-center gap-2">
-               <span className="text-xs font-medium text-zinc-500">Pages</span>
-               <span className="material-symbols-outlined !text-sm text-zinc-600">chevron_right</span>
-               <span className="text-sm font-semibold text-zinc-300">
+               <span className="text-base font-semibold text-zinc-100">
                   {location.pathname === '/' ? 'Dashboard Overview' : 'Configuration'}
                </span>
-           </div>
-           <div className="flex items-center gap-3">
-               <button className="size-9 rounded-lg border border-zinc-800/50 flex items-center justify-center text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900/50 transition-colors">
-                   <span className="material-symbols-outlined !text-xl">notifications</span>
-               </button>
-               <button className="size-9 rounded-lg border border-zinc-800/50 flex items-center justify-center text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900/50 transition-colors">
-                   <span className="material-symbols-outlined !text-xl">search</span>
-               </button>
            </div>
         </header>
 
         {/* Content Container */}
-        <div className="max-w-5xl mx-auto px-8 py-10 space-y-8">
+        <div className="max-w-7xl mx-auto px-6 py-6 sm:px-8 lg:px-10 space-y-8">
             <Outlet />
         </div>
       </main>
