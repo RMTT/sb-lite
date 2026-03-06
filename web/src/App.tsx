@@ -3,6 +3,7 @@ import { Toaster } from 'sonner'
 import { DashboardLayout } from './layouts/DashboardLayout'
 import { Overview } from './pages/Overview'
 import { Config } from './pages/Config'
+import { Connections } from './pages/Connections'
 import './App.css'
 
 function App() {
@@ -19,6 +20,7 @@ function App() {
         <Route path="/" element={<DashboardLayout />}>
           <Route index element={<Overview />} />
           <Route path="config" element={<Config />} />
+          <Route path="connections" element={<Connections />} />
         </Route>
       </Routes>
     </BrowserRouter>

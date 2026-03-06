@@ -764,3 +764,34 @@ pub async fn get_proxy_delay_handler(
         }
     }
 }
+
+pub async fn close_connection_handler(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+) -> Response {
+    let (_, _, external_controller) = state.get_custom_fields().await;
+    let url = format!("http://{}/connections/{}", external_controller, id);
+
+    let client = reqwest::Client::new();
+    match client.delete(&url).send().await {
+        Ok(resp) => {
+            let status = resp.status();
+            if status.is_success() {
+                return (StatusCode::NO_CONTENT).into_response();
+            }
+            (
+                StatusCode::BAD_GATEWAY,
+                format!("Failed to close connection: HTTP {}", status),
+            )
+                .into_response()
+        }
+        Err(e) => {
+            error!("Failed to close connection {}: {}", id, e);
+            (
+                StatusCode::BAD_GATEWAY,
+                format!("Failed to close connection: {}", e),
+            )
+                .into_response()
+        }
+    }
+}
