@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
+import { Router, Square, Play, Clock, Download, Upload } from 'lucide-react'
 
 function formatBytes(bytes: number, decimals = 2) {
   if (!+bytes) return '0 Bytes'
@@ -168,7 +169,7 @@ export function Overview() {
           <div className="flex flex-col items-center justify-center mb-16 relative">
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 size-64 bg-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
             <div className="size-24 rounded-full bg-zinc-900 border border-zinc-700/50 shadow-2xl flex items-center justify-center relative z-10 mb-6">
-              <span className="material-symbols-outlined !text-5xl text-zinc-400">router</span>
+              <Router className="w-12 h-12 text-zinc-400" strokeWidth={1.5} />
             </div>
             <div className="text-center relative z-10">
               <div className="text-zinc-300 font-medium mb-1">Core Version: {version || 'Unknown'}</div>
@@ -181,14 +182,14 @@ export function Overview() {
                 onClick={handleStop}
                 disabled={!isRunning || isLoading}
             >
-              <span className="material-symbols-outlined !text-sm">stop</span> Stop
+              <Square className="w-4 h-4 fill-current" /> Stop
             </button>
             <button
                 className="flex items-center justify-center gap-2 px-8 py-3 rounded-lg bg-white text-zinc-950 hover:bg-zinc-200 transition-colors font-semibold w-48 disabled:opacity-50 disabled:cursor-not-allowed"
                 onClick={handleStart}
                 disabled={isRunning || isLoading}
             >
-              <span className="material-symbols-outlined !text-sm">play_arrow</span> Start
+              <Play className="w-4 h-4 fill-current" /> Start
             </button>
           </div>
         </div>
@@ -198,7 +199,7 @@ export function Overview() {
         <div className="bg-zinc-900/50 border border-zinc-800/50 rounded-xl p-6 shadow-sm">
           <div className="flex justify-between items-start mb-6">
             <span className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase">UPTIME</span>
-            <span className="material-symbols-outlined !text-sm text-blue-500">schedule</span>
+            <Clock className="w-4 h-4 text-blue-500" />
           </div>
           <div className="flex items-baseline gap-2">
             <span className="text-2xl font-bold tracking-tight text-white">{isRunning ? uptimeStr : '0s'}</span>
@@ -207,7 +208,7 @@ export function Overview() {
         <div className="bg-zinc-900/50 border border-zinc-800/50 rounded-xl p-6 shadow-sm">
           <div className="flex justify-between items-start mb-6">
             <span className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase">DOWNLOAD</span>
-            <span className="material-symbols-outlined !text-sm text-blue-500">download</span>
+            <Download className="w-4 h-4 text-blue-500" />
           </div>
           <div className="flex items-baseline gap-2">
             <span className="text-2xl font-bold tracking-tight text-white">{isRunning ? formatBytes(downloadTotal) : '0 Bytes'}</span>
@@ -216,7 +217,7 @@ export function Overview() {
         <div className="bg-zinc-900/50 border border-zinc-800/50 rounded-xl p-6 shadow-sm">
           <div className="flex justify-between items-start mb-6">
             <span className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase">UPLOAD</span>
-            <span className="material-symbols-outlined !text-sm text-blue-500">upload</span>
+            <Upload className="w-4 h-4 text-blue-500" />
           </div>
           <div className="flex items-baseline gap-2">
             <span className="text-2xl font-bold tracking-tight text-white">{isRunning ? formatBytes(uploadTotal) : '0 Bytes'}</span>
