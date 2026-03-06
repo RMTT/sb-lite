@@ -15,19 +15,28 @@ export interface Selector {
     interrupt_exist_connections: boolean
 }
 
+export interface Subscription {
+    url: string
+    prefix?: string
+    last_fetched: string | null
+    raw_data: string | null
+}
+
 export interface CustomFieldsData {
-    subscription_urls: string[]
+    subscriptions: Subscription[]
     selectors: Selector[]
 }
 
 export function Config() {
   const [configs, setConfigs] = useState<string[]>([])
   const [activeConfig, setActiveConfig] = useState<string | null>(null)
+  const [updatingIndex, setUpdatingIndex] = useState<number | null>(null)
+  const [isAddingUrl, setIsAddingUrl] = useState(false)
 
   // Custom Fields State
-  const [subscriptionUrls, setSubscriptionUrls] = useState<string[]>([])
+  const [subscriptions, setSubscriptions] = useState<Subscription[]>([])
   const [selectors, setSelectors] = useState<Selector[]>([])
-  const [isSavingCustomFields, setIsSavingCustomFields] = useState(false)
+  const [, setIsSavingCustomFields] = useState(false)
 
   // Editor Modal State
   const [isEditorOpen, setIsEditorOpen] = useState(false)
@@ -43,10 +52,9 @@ export function Config() {
   // Create Modal State
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [createFileName, setCreateFileName] = useState('')
-
-  // Delete Modal State
-  const [isDeleteOpen, setIsDeleteOpen] = useState(false)
-  const [deleteFileName, setDeleteFileName] = useState('')
+  const [configToDelete, setConfigToDelete] = useState<string | null>(null)
+  const [isMergedEditorOpen, setIsMergedEditorOpen] = useState(false)
+  const [mergedConfigContent, setMergedConfigContent] = useState('')
 
   const [isLoading, setIsLoading] = useState<boolean>(true)
   const [isSaving, setIsSaving] = useState<boolean>(false)
@@ -71,7 +79,7 @@ export function Config() {
 
       if (customFieldsRes.ok) {
           const data: CustomFieldsData = await customFieldsRes.json()
-          setSubscriptionUrls(data.subscription_urls || [])
+          setSubscriptions(data.subscriptions || [])
           setSelectors(data.selectors || [])
       } else {
           throw new Error(`Failed to load custom fields: ${customFieldsRes.statusText}`)
@@ -87,34 +95,31 @@ export function Config() {
     fetchConfigs()
   }, [])
 
-  const handleSaveCustomFields = async () => {
-      setIsSavingCustomFields(true)
-      try {
-          const response = await fetch('/api/custom-fields', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                  subscription_urls: subscriptionUrls,
-                  selectors: selectors
-              })
-          })
-
-          if (response.ok) {
-              toast.success('Custom fields saved successfully!')
-          } else {
-              throw new Error(`Failed to save custom fields: ${response.statusText}`)
-          }
-      } catch (err) {
-          toast.error(err instanceof Error ? err.message : 'Failed to save custom fields.')
-      } finally {
-          setIsSavingCustomFields(false)
-      }
-  }
 
   const handleEditorChange = (value: string | undefined) => {
     if (value !== undefined) {
       setConfigContent(value)
     }
+  }
+
+  const handleOpenMergedConfig = async () => {
+      setIsLoading(true)
+      try {
+          const response = await fetch('/api/config/merged')
+          if (response.ok) {
+              const text = await response.text()
+              setMergedConfigContent(text)
+              setIsMergedEditorOpen(true)
+          } else if (response.status === 404) {
+              toast.error('Merged config not found. Apply a config or update custom settings first.')
+          } else {
+              throw new Error(`Failed to load merged config: ${response.statusText}`)
+          }
+      } catch (err) {
+          toast.error(err instanceof Error ? err.message : 'Failed to load merged config.')
+      } finally {
+          setIsLoading(false)
+      }
   }
 
   const handleOpenEditor = async (filename: string) => {
@@ -261,6 +266,27 @@ export function Config() {
       }
   }
 
+  const handleDeleteConfig = async () => {
+      if (!configToDelete) return
+      setIsSaving(true)
+      try {
+          const response = await fetch(`/api/config/${configToDelete}`, {
+              method: 'DELETE',
+          })
+          if (response.ok) {
+              toast.success(`Configuration ${configToDelete} deleted!`)
+              setConfigToDelete(null)
+              fetchConfigs() // refresh list
+          } else {
+              throw new Error(`Failed to delete config: ${response.statusText}`)
+          }
+      } catch (err) {
+          toast.error(err instanceof Error ? err.message : 'Failed to delete config.')
+      } finally {
+          setIsSaving(false)
+      }
+  }
+
   const handleCreateSubmit = async () => {
       if (!createFileName.trim()) {
           toast.error("Filename cannot be empty.")
@@ -298,29 +324,6 @@ export function Config() {
       }
   }
 
-  const handleDeleteSubmit = async () => {
-      if (!deleteFileName) return
-
-      setIsSaving(true)
-      try {
-          const response = await fetch(`/api/config/${deleteFileName}`, {
-              method: 'DELETE',
-          })
-          if (response.ok) {
-              toast.success(`Configuration ${deleteFileName} deleted successfully!`)
-              setIsDeleteOpen(false)
-              setDeleteFileName('')
-              fetchConfigs() // refresh list
-          } else {
-              throw new Error(`Failed to delete config: ${response.statusText}`)
-          }
-      } catch (err) {
-          toast.error(err instanceof Error ? err.message : 'Failed to delete config.')
-      } finally {
-          setIsSaving(false)
-      }
-  }
-
   const hasEditorChanges = configContent !== originalContent
 
   const sortedConfigs = [...configs].sort((a, b) => {
@@ -330,15 +333,113 @@ export function Config() {
   });
 
   const [newUrl, setNewUrl] = useState('')
+  const [newPrefix, setNewPrefix] = useState('')
 
-  const handleAddUrl = () => {
-      if (!newUrl.trim()) return
-      setSubscriptionUrls([...subscriptionUrls, newUrl.trim()])
-      setNewUrl('')
+  const handleAddUrl = async () => {
+      const urlToAdd = newUrl.trim()
+      if (!urlToAdd) return
+
+      if (subscriptions.some(sub => sub.url === urlToAdd)) {
+          toast.error("This subscription URL has already been added.")
+          return
+      }
+
+      setIsAddingUrl(true)
+      try {
+          // Validate the URL first
+          const valRes = await fetch('/api/subscriptions/validate', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ url: urlToAdd })
+          })
+
+          if (!valRes.ok) {
+              let msg = valRes.statusText
+              try {
+                  const errorText = await valRes.text()
+                  if (errorText) msg = errorText
+              } catch { console.error("Error reading text"); }
+              throw new Error(msg)
+          }
+
+          const validationData = await valRes.json()
+
+          const newSub: Subscription = {
+              url: urlToAdd,
+              prefix: newPrefix.trim() || undefined,
+              last_fetched: validationData.last_fetched,
+              raw_data: validationData.raw_data
+          }
+          const updatedSubs = [...subscriptions, newSub]
+          setSubscriptions(updatedSubs)
+          setNewUrl('')
+          setNewPrefix('')
+
+          setIsSavingCustomFields(true)
+          const response = await fetch('/api/custom-fields', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                  subscriptions: updatedSubs,
+                  selectors: selectors
+              })
+          })
+
+          if (response.ok) {
+              toast.success('Subscription validated and added!')
+              fetchConfigs() // reload
+          } else {
+              throw new Error(`Failed to save custom fields: ${response.statusText}`)
+          }
+      } catch (err) {
+          toast.error(err instanceof Error ? err.message : 'Failed to add subscription.')
+      } finally {
+          setIsAddingUrl(false)
+          setIsSavingCustomFields(false)
+      }
   }
 
-  const handleRemoveUrl = (indexToRemove: number) => {
-      setSubscriptionUrls(subscriptionUrls.filter((_, index) => index !== indexToRemove))
+  const handleUpdateSubscription = async (index: number) => {
+      setUpdatingIndex(index)
+      try {
+          const response = await fetch(`/api/subscriptions/${index}/update`, {
+              method: 'POST',
+          })
+          if (response.ok) {
+              toast.success('Subscription updated!')
+              fetchConfigs() // Refresh
+          } else {
+              throw new Error(`Failed to update subscription: ${response.statusText}`)
+          }
+      } catch (err) {
+          toast.error(err instanceof Error ? err.message : 'Failed to update subscription.')
+      } finally {
+          setUpdatingIndex(null)
+      }
+  }
+  const handleRemoveUrl = async (indexToRemove: number) => {
+      const updatedSubs = subscriptions.filter((_, index) => index !== indexToRemove)
+      setSubscriptions(updatedSubs)
+
+      setIsSavingCustomFields(true)
+      try {
+          const response = await fetch('/api/custom-fields', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                  subscriptions: updatedSubs,
+                  selectors: selectors
+              })
+          })
+
+          if (!response.ok) {
+              throw new Error(`Failed to save custom fields: ${response.statusText}`)
+          }
+      } catch (err) {
+          toast.error(err instanceof Error ? err.message : 'Failed to save custom fields.')
+      } finally {
+          setIsSavingCustomFields(false)
+      }
   }
 
   // Selector Form State
@@ -349,12 +450,14 @@ export function Config() {
       interrupt_exist_connections: false
   })
 
-  const handleAddSelector = () => {
+  const handleAddSelector = async () => {
       if (!newSelector.name.trim() || !newSelector.regex.trim()) {
           toast.error("Name and Regex are required fields.")
           return
       }
-      setSelectors([...selectors, { ...newSelector, name: newSelector.name.trim(), regex: newSelector.regex.trim(), default: newSelector.default.trim() }])
+      const newSel = { ...newSelector, name: newSelector.name.trim(), regex: newSelector.regex.trim(), default: newSelector.default.trim() }
+      const updatedSelectors = [...selectors, newSel]
+      setSelectors(updatedSelectors)
       // Reset form
       setNewSelector({
           name: '',
@@ -362,10 +465,51 @@ export function Config() {
           default: '',
           interrupt_exist_connections: false
       })
+
+      setIsSavingCustomFields(true)
+      try {
+          const response = await fetch('/api/custom-fields', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                  subscriptions: subscriptions,
+                  selectors: updatedSelectors
+              })
+          })
+
+          if (!response.ok) {
+              throw new Error(`Failed to save custom fields: ${response.statusText}`)
+          }
+      } catch (err) {
+          toast.error(err instanceof Error ? err.message : 'Failed to save custom fields.')
+      } finally {
+          setIsSavingCustomFields(false)
+      }
   }
 
-  const handleRemoveSelector = (indexToRemove: number) => {
-      setSelectors(selectors.filter((_, index) => index !== indexToRemove))
+  const handleRemoveSelector = async (indexToRemove: number) => {
+      const updatedSelectors = selectors.filter((_, index) => index !== indexToRemove)
+      setSelectors(updatedSelectors)
+
+      setIsSavingCustomFields(true)
+      try {
+          const response = await fetch('/api/custom-fields', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                  subscriptions: subscriptions,
+                  selectors: updatedSelectors
+              })
+          })
+
+          if (!response.ok) {
+              throw new Error(`Failed to save custom fields: ${response.statusText}`)
+          }
+      } catch (err) {
+          toast.error(err instanceof Error ? err.message : 'Failed to save custom fields.')
+      } finally {
+          setIsSavingCustomFields(false)
+      }
   }
 
   return (
@@ -450,15 +594,12 @@ export function Config() {
                                       Edit
                                   </button>
                                   <button
-                                      onClick={() => {
-                                          setDeleteFileName(filename)
-                                          setIsDeleteOpen(true)
-                                      }}
-                                      disabled={isLoading || activeConfig === filename}
-                                      className="btn btn-sm btn-outline hover:bg-red-500/10 hover:border-red-500/50 hover:text-red-500 text-base-content/60"
-                                      title="Delete this configuration"
+                                      onClick={() => setConfigToDelete(filename)}
+                                      disabled={isLoading}
+                                      className="btn btn-sm btn-square btn-ghost text-base-content/50 hover:text-red-400 hover:bg-base-300 transition-colors"
+                                      title="Delete Configuration"
                                   >
-                                      <Trash2 className="h-3.5 w-3.5" />
+                                      <Trash2 className="h-4 w-4" />
                                   </button>
                               </div>
                           </li>
@@ -477,23 +618,14 @@ export function Config() {
               </div>
               <div className="flex items-center gap-2">
                   <button
+                      onClick={handleOpenMergedConfig}
+                      disabled={isLoading}
                       className="btn btn-sm btn-outline"
                   >
                       <Share className="h-4 w-4" />
-                      Export merged config
+                      Show merged config
                   </button>
-                  <button
-                      onClick={handleSaveCustomFields}
-                      disabled={isSavingCustomFields}
-                      className="btn btn-sm btn-primary"
-                  >
-                      {isSavingCustomFields ? (
-                          <RefreshCw className="h-4 w-4 animate-spin" />
-                      ) : (
-                          <Save className="h-4 w-4" />
-                      )}
-                      Sync changes
-                  </button>
+
               </div>
           </div>
 
@@ -501,51 +633,81 @@ export function Config() {
               {/* Subscription URLs Section */}
               <div className="space-y-4">
                   <h3 className="text-sm font-medium text-base-content/80">Subscription URLs</h3>
-                  <div className="flex gap-2">
-                      <input
-                          type="text"
-                          value={newUrl}
-                          onChange={(e) => setNewUrl(e.target.value)}
-                          placeholder="https://example.com/subscribe"
-                          className="flex-1 bg-base-100 border border-base-300 rounded-md px-3 py-2 text-sm text-base-content focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500"
-                          onKeyDown={(e) => {
-                              if (e.key === 'Enter') handleAddUrl()
-                          }}
-                      />
+                  <div className="flex gap-2 items-start">
+                      <div className="flex-1 flex gap-2">
+                          <input
+                              type="text"
+                              value={newUrl}
+                              onChange={(e) => setNewUrl(e.target.value)}
+                              placeholder="https://example.com/subscribe"
+                              className="flex-1 bg-base-100 border border-base-300 rounded-md px-3 py-2 text-sm text-base-content focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500"
+                              onKeyDown={(e) => {
+                                  if (e.key === 'Enter') handleAddUrl()
+                              }}
+                          />
+                          <input
+                              type="text"
+                              value={newPrefix}
+                              onChange={(e) => setNewPrefix(e.target.value)}
+                              placeholder="Prefix (Optional)"
+                              className="w-40 bg-base-100 border border-base-300 rounded-md px-3 py-2 text-sm text-base-content focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500"
+                              onKeyDown={(e) => {
+                                  if (e.key === 'Enter') handleAddUrl()
+                              }}
+                          />
+                      </div>
                       <button
                           onClick={handleAddUrl}
-                          disabled={!newUrl.trim()}
-                          className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-base-300 text-base-content rounded-md hover:border-base-300 transition-colors shadow-sm disabled:opacity-50"
+                          disabled={!newUrl.trim() || isAddingUrl}
+                          className="flex items-center justify-center gap-2 px-4 py-2 h-[38px] text-sm font-medium bg-base-300 text-base-content rounded-md hover:bg-base-300/80 active:scale-95 transition-all shadow-sm disabled:opacity-50 whitespace-nowrap"
                       >
-                          <Plus className="h-4 w-4" />
+                          {isAddingUrl ? (
+                              <RefreshCw className="h-4 w-4 animate-spin" />
+                          ) : (
+                              <Plus className="h-4 w-4" />
+                          )}
                           Add URL
                       </button>
                   </div>
 
-                  {subscriptionUrls.length === 0 ? (
+                  {subscriptions.length === 0 ? (
                       <div className="text-sm text-base-content/50 text-center py-4 bg-base-100/50 rounded-md border border-base-300">
                           No subscription URLs added yet.
                       </div>
                   ) : (
                       <ul className="space-y-2">
-                          {subscriptionUrls.map((url, idx) => (
-                              <li key={idx} className="flex items-center justify-between bg-base-100 border border-zinc-800 rounded-md px-3 py-2 text-sm">
-                                  <span className="text-base-content/80 truncate mr-4">{url}</span>
-                                  <div className="flex items-center gap-2">
-                                      <button
-                                          type="button"
-                                          className="text-base-content/50 hover:text-primary transition-colors shrink-0 p-1.5 rounded-md hover:bg-base-300"
-                                          title="Update Subscription"
-                                      >
-                                          <RefreshCw className="h-4 w-4" />
-                                      </button>
-                                      <button
-                                          onClick={() => handleRemoveUrl(idx)}
-                                          className="text-base-content/50 hover:text-red-400 transition-colors shrink-0 p-1.5 rounded-md hover:bg-base-300"
-                                          title="Remove URL"
-                                      >
-                                          <Trash2 className="h-4 w-4" />
-                                      </button>
+                          {subscriptions.map((sub, idx) => (
+                              <li key={idx} className="flex flex-col bg-base-100 border border-zinc-800 rounded-md px-3 py-2 text-sm">
+                                  <div className="flex items-center justify-between">
+                                      <div className="flex items-center gap-3 truncate mr-4">
+                                          <span className="text-base-content/80 truncate">{sub.url}</span>
+                                          {sub.prefix && (
+                                              <span className="badge badge-sm badge-outline text-xs opacity-70 whitespace-nowrap shrink-0">
+                                                  Prefix: {sub.prefix}
+                                              </span>
+                                          )}
+                                      </div>
+                                      <div className="flex items-center gap-2 shrink-0">
+                                          <button
+                                              onClick={() => handleUpdateSubscription(idx)}
+                                              type="button"
+                                              disabled={updatingIndex === idx}
+                                              className="text-base-content/50 hover:text-primary transition-colors shrink-0 p-1.5 rounded-md hover:bg-base-300 disabled:opacity-50"
+                                              title="Update Subscription"
+                                          >
+                                              <RefreshCw className={`h-4 w-4 ${updatingIndex === idx ? 'animate-spin' : ''}`} />
+                                          </button>
+                                          <button
+                                              onClick={() => handleRemoveUrl(idx)}
+                                              className="text-base-content/50 hover:text-red-400 transition-colors shrink-0 p-1.5 rounded-md hover:bg-base-300"
+                                              title="Remove URL"
+                                          >
+                                              <Trash2 className="h-4 w-4" />
+                                          </button>
+                                      </div>
+                                  </div>
+                                  <div className="text-xs text-base-content/50 mt-1">
+                                      Last fetched: {sub.last_fetched ? new Date(sub.last_fetched).toLocaleString() : 'Never'}
                                   </div>
                               </li>
                           ))}
@@ -603,7 +765,7 @@ export function Config() {
                       <div className="lg:col-span-1">
                           <button
                               onClick={handleAddSelector}
-                              className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium bg-base-300 text-base-content rounded-md hover:border-base-300 transition-colors shadow-sm"
+                              className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium bg-base-300 text-base-content rounded-md hover:bg-base-300/80 active:scale-95 transition-all shadow-sm"
                           >
                               <Plus className="h-4 w-4" />
                               Add
@@ -704,6 +866,43 @@ export function Config() {
           </div>
       )}
 
+
+      {/* Delete Confirmation Modal */}
+      {configToDelete && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+              <div className="bg-base-100 border border-zinc-800 rounded-lg shadow-2xl w-full max-w-sm overflow-hidden">
+                  <div className="p-4 border-b border-base-300">
+                      <h3 className="text-lg font-medium text-red-500 flex items-center gap-2">
+                          <Trash2 className="h-5 w-5" />
+                          Delete Configuration
+                      </h3>
+                  </div>
+                  <div className="p-4 space-y-4">
+                      <p className="text-sm text-base-content/80">
+                          Are you sure you want to delete <strong className="text-base-content font-mono">{configToDelete}</strong>? This action cannot be undone.
+                      </p>
+                  </div>
+                  <div className="p-4 bg-base-200 border-t border-base-300 flex justify-end gap-2">
+                      <button
+                          onClick={() => setConfigToDelete(null)}
+                          className="px-4 py-2 text-sm font-medium text-base-content/60 hover:text-base-content transition-colors"
+                          disabled={isSaving}
+                      >
+                          Cancel
+                      </button>
+                      <button
+                          onClick={handleDeleteConfig}
+                          disabled={isSaving}
+                          className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-red-500/10 text-red-500 hover:bg-red-500/20 border border-red-500/20 rounded-md transition-colors shadow-sm disabled:opacity-50"
+                      >
+                          {isSaving && <RefreshCw className="h-4 w-4 animate-spin" />}
+                          Delete
+                      </button>
+                  </div>
+              </div>
+          </div>
+      )}
+
       {/* Create Name Modal */}
       {isCreateOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
@@ -750,37 +949,42 @@ export function Config() {
           </div>
       )}
 
-      {/* Delete Confirmation Modal */}
-      {isDeleteOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-              <div className="bg-base-100 border border-zinc-800 rounded-lg shadow-2xl w-full max-w-md overflow-hidden">
-                  <div className="p-4 border-b border-base-300 flex justify-between items-center">
-                      <h3 className="text-lg font-medium text-base-content text-red-500">Delete Configuration</h3>
-                      <button onClick={() => setIsDeleteOpen(false)} className="text-base-content/60 hover:text-base-content">
-                          <X className="h-5 w-5" />
-                      </button>
+
+      {/* Merged Config Editor Modal */}
+      {isMergedEditorOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-6">
+              <div className="flex flex-col w-full max-w-5xl h-full max-h-[90vh] bg-[#1e1e1e] border border-base-300 shadow-2xl rounded-lg overflow-hidden">
+                  <div className="flex items-center justify-between p-3 border-b border-base-300 bg-[#252526]">
+                      <div className="text-sm font-medium text-base-content/80 flex items-center gap-2">
+                          <FileJson className="h-4 w-4 text-primary" />
+                          <span className="text-base-content">Merged Configuration (Read-only)</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                          <button
+                              onClick={() => setIsMergedEditorOpen(false)}
+                              className="btn btn-sm btn-square btn-ghost"
+                              title="Close"
+                          >
+                              <X className="h-4 w-4" />
+                          </button>
+                      </div>
                   </div>
-                  <div className="p-6 space-y-4">
-                      <p className="text-base-content/80">
-                          Are you sure you want to delete <span className="font-semibold text-base-content">{deleteFileName}</span>?
-                      </p>
-                      <p className="text-sm text-base-content/60">This action cannot be undone.</p>
-                  </div>
-                  <div className="p-4 bg-base-200 border-t border-base-300 flex justify-end gap-2">
-                      <button
-                          onClick={() => setIsDeleteOpen(false)}
-                          className="px-4 py-2 text-sm font-medium text-base-content/60 hover:text-base-content transition-colors"
-                      >
-                          Cancel
-                      </button>
-                      <button
-                          onClick={handleDeleteSubmit}
-                          disabled={isSaving}
-                          className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-red-500/10 text-red-500 border border-red-500/20 rounded-md hover:bg-red-500 hover:text-white transition-colors shadow-sm disabled:opacity-50"
-                      >
-                          {isSaving && <RefreshCw className="h-4 w-4 animate-spin" />}
-                          Delete
-                      </button>
+
+                  <div className="flex-1 relative">
+                      <Editor
+                          height="100%"
+                          defaultLanguage="json"
+                          theme="vs-dark"
+                          value={mergedConfigContent}
+                          options={{
+                              minimap: { enabled: false },
+                              fontSize: 14,
+                              wordWrap: 'on',
+                              scrollBeyondLastLine: false,
+                              padding: { top: 16, bottom: 16 },
+                              readOnly: true,
+                          }}
+                      />
                   </div>
               </div>
           </div>

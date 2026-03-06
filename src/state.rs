@@ -10,6 +10,15 @@ pub struct AppState {
 }
 
 #[derive(Serialize, Deserialize, Default, Clone)]
+pub struct Subscription {
+    pub url: String,
+    #[serde(default)]
+    pub prefix: Option<String>,
+    pub last_fetched: Option<chrono::DateTime<chrono::Utc>>,
+    pub raw_data: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, Default, Clone)]
 pub struct Selector {
     pub name: String,
     pub regex: String,
@@ -20,7 +29,7 @@ pub struct Selector {
 #[derive(Serialize, Deserialize, Default, Clone)]
 pub struct PersistedState {
     pub active_config: Option<String>,
-    pub subscription_urls: Vec<String>,
+    pub subscriptions: Vec<Subscription>,
     pub selectors: Vec<Selector>,
 }
 
@@ -44,19 +53,38 @@ impl AppState {
             .map_err(|e| e.to_string())
     }
 
-    pub async fn get_custom_fields(&self) -> (Vec<String>, Vec<Selector>) {
+    pub async fn get_custom_fields(&self) -> (Vec<Subscription>, Vec<Selector>) {
         let state = self.persisted_state.read().await;
-        (state.subscription_urls.clone(), state.selectors.clone())
+        (state.subscriptions.clone(), state.selectors.clone())
     }
 
     pub async fn set_custom_fields(
         &self,
-        urls: Vec<String>,
+        subscriptions: Vec<Subscription>,
         selectors: Vec<Selector>,
     ) -> Result<(), String> {
         let mut state = self.persisted_state.write().await;
-        state.subscription_urls = urls;
+        state.subscriptions = subscriptions;
         state.selectors = selectors;
+
+        let bytes = bincode::serialize(&*state).map_err(|e| e.to_string())?;
+        tokio::fs::write(self.state_file_path(), bytes)
+            .await
+            .map_err(|e| e.to_string())
+    }
+    pub async fn update_subscription(
+        &self,
+        index: usize,
+        last_fetched: chrono::DateTime<chrono::Utc>,
+        raw_data: String,
+    ) -> Result<(), String> {
+        let mut state = self.persisted_state.write().await;
+        if let Some(sub) = state.subscriptions.get_mut(index) {
+            sub.last_fetched = Some(last_fetched);
+            sub.raw_data = Some(raw_data);
+        } else {
+            return Err("Subscription index out of bounds".to_string());
+        }
 
         let bytes = bincode::serialize(&*state).map_err(|e| e.to_string())?;
         tokio::fs::write(self.state_file_path(), bytes)
