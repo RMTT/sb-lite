@@ -7,20 +7,24 @@ use std::path::PathBuf;
 use crate::handlers::Sip008Data;
 
 pub async fn generate_and_write_active_config(state: &AppState) -> Result<(), String> {
-    let active_filename = match state.get_active_config().await {
-        Some(name) if !name.is_empty() => name,
-        _ => return Ok(()), // No active config to process
-    };
-
-    let config_path = state.state_directory.join(&active_filename);
-    let content = match tokio::fs::read_to_string(&config_path).await {
-        Ok(c) => c,
-        Err(e) => return Err(format!("Failed to read active config: {}", e)),
-    };
-
-    let mut config: serde_json::Value = match serde_json::from_str(&content) {
-        Ok(c) => c,
-        Err(e) => return Err(format!("Invalid base config JSON: {}", e)),
+    let mut config: serde_json::Value = match state.get_active_config().await {
+        Some(name) if !name.is_empty() => {
+            let config_path = state.state_directory.join(&name);
+            match tokio::fs::read_to_string(&config_path).await {
+                Ok(content) => match serde_json::from_str(&content) {
+                    Ok(c) => c,
+                    Err(e) => {
+                        error!("Invalid base config JSON ({}): {}", name, e);
+                        json!({})
+                    }
+                },
+                Err(e) => {
+                    error!("Failed to read active config ({}): {}", name, e);
+                    json!({})
+                }
+            }
+        }
+        _ => json!({}),
     };
 
     let (subs, selectors) = state.get_custom_fields().await;
@@ -51,8 +55,6 @@ pub async fn generate_and_write_active_config(state: &AppState) -> Result<(), St
                             "tag": tag.clone(),
                             "server": server.server,
                             "server_port": server.server_port,
-                            "plugin": server.plugin.unwrap_or_else(|| "".to_string()),
-                            "plugin_opts": server.plugin_opts.unwrap_or_else(|| "".to_string()),
                             "method": server.method.unwrap_or_else(|| "chacha20-ietf-poly1305".to_string()),
                         });
 
