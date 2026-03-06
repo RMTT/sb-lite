@@ -1,13 +1,55 @@
 import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
 
+function formatBytes(bytes: number, decimals = 2) {
+  if (!+bytes) return '0 Bytes'
+  const k = 1024
+  const dm = decimals < 0 ? 0 : decimals
+  const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`
+}
+
+function formatUptime(startTimeString: string | null) {
+  if (!startTimeString) return '0s'
+  const startTime = new Date(startTimeString).getTime()
+  const now = new Date().getTime()
+  const diffInSeconds = Math.floor((now - startTime) / 1000)
+
+  if (diffInSeconds < 0) return '0s'
+
+  const days = Math.floor(diffInSeconds / (3600 * 24))
+  const hours = Math.floor((diffInSeconds % (3600 * 24)) / 3600)
+  const minutes = Math.floor((diffInSeconds % 3600) / 60)
+  const seconds = diffInSeconds % 60
+
+  const parts = []
+  if (days > 0) parts.push(`${days}d`)
+  if (hours > 0) parts.push(`${hours}h`)
+  if (minutes > 0) parts.push(`${minutes}m`)
+  if (seconds > 0 || parts.length === 0) parts.push(`${seconds}s`)
+
+  return parts.slice(0, 2).join(' ')
+}
+
 export function Overview() {
-
-
   const [isRunning, setIsRunning] = useState(false)
   const [version, setVersion] = useState<string | null>(null)
   const [autoStart, setAutoStart] = useState(false)
+  const [startTime, setStartTime] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+
+  const [downloadTotal, setDownloadTotal] = useState(0)
+  const [uploadTotal, setUploadTotal] = useState(0)
+
+  const [uptimeStr, setUptimeStr] = useState('0s')
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setUptimeStr(formatUptime(startTime))
+    }, 1000)
+    return () => clearInterval(timer)
+  }, [startTime])
 
   const fetchStatus = async () => {
     try {
@@ -17,11 +59,26 @@ export function Overview() {
         setIsRunning(data.is_running)
         setVersion(data.version)
         setAutoStart(data.auto_start)
+        setStartTime(data.start_time)
+        setUptimeStr(formatUptime(data.start_time))
       }
     } catch {
       console.error('Failed to fetch status')
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const fetchConnections = async () => {
+    try {
+      const res = await fetch('/api/sing-box/connections')
+      if (res.ok) {
+        const data = await res.json()
+        setDownloadTotal(data.downloadTotal || 0)
+        setUploadTotal(data.uploadTotal || 0)
+      }
+    } catch {
+      console.error('Failed to fetch connections')
     }
   }
 
@@ -44,10 +101,13 @@ export function Overview() {
       }
   }
 
-
   useEffect(() => {
     fetchStatus()
-    const interval = setInterval(fetchStatus, 2000)
+    fetchConnections()
+    const interval = setInterval(() => {
+      fetchStatus()
+      fetchConnections()
+    }, 2000)
     return () => clearInterval(interval)
   }, [])
 
@@ -80,7 +140,6 @@ export function Overview() {
       toast.error('Failed to stop')
     }
   }
-
 
   return (
     <>
@@ -142,8 +201,7 @@ export function Overview() {
             <span className="material-symbols-outlined !text-sm text-blue-500">schedule</span>
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-bold tracking-tight text-white">2h 45m</span>
-            <span className="text-xs font-semibold text-emerald-500">+5%</span>
+            <span className="text-2xl font-bold tracking-tight text-white">{isRunning ? uptimeStr : '0s'}</span>
           </div>
         </div>
         <div className="bg-zinc-900/50 border border-zinc-800/50 rounded-xl p-6 shadow-sm">
@@ -152,8 +210,7 @@ export function Overview() {
             <span className="material-symbols-outlined !text-sm text-blue-500">download</span>
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-bold tracking-tight text-white">1.2 GB</span>
-            <span className="text-xs font-semibold text-emerald-500">+12%</span>
+            <span className="text-2xl font-bold tracking-tight text-white">{isRunning ? formatBytes(downloadTotal) : '0 Bytes'}</span>
           </div>
         </div>
         <div className="bg-zinc-900/50 border border-zinc-800/50 rounded-xl p-6 shadow-sm">
@@ -162,8 +219,7 @@ export function Overview() {
             <span className="material-symbols-outlined !text-sm text-blue-500">upload</span>
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-bold tracking-tight text-white">450 MB</span>
-            <span className="text-xs font-semibold text-red-500">-2%</span>
+            <span className="text-2xl font-bold tracking-tight text-white">{isRunning ? formatBytes(uploadTotal) : '0 Bytes'}</span>
           </div>
         </div>
       </div>

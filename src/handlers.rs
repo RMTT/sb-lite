@@ -495,6 +495,7 @@ pub struct SingBoxStatusResponse {
     pub version: Option<String>,
     pub is_running: bool,
     pub auto_start: bool,
+    pub start_time: Option<chrono::DateTime<chrono::Utc>>,
 }
 
 pub async fn get_sing_box_status_handler(State(state): State<AppState>) -> Response {
@@ -526,6 +527,8 @@ pub async fn get_sing_box_status_handler(State(state): State<AppState>) -> Respo
         }
     }
 
+    let start_time = *state.start_time.lock().await;
+
     let auto_start = state.get_auto_start().await;
 
     (
@@ -534,6 +537,7 @@ pub async fn get_sing_box_status_handler(State(state): State<AppState>) -> Respo
             version,
             is_running,
             auto_start,
+            start_time,
         }),
     )
         .into_response()
@@ -564,6 +568,8 @@ pub async fn stop_sing_box_handler(State(state): State<AppState>) -> Response {
                 .into_response();
         }
         let _ = child.wait().await;
+        let mut start_time_lock = state.start_time.lock().await;
+        *start_time_lock = None;
         info!("sing-box stopped");
         (StatusCode::OK, "sing-box stopped").into_response()
     } else {
@@ -588,6 +594,41 @@ pub async fn toggle_auto_start_handler(
         Err(e) => {
             error!("Failed to save state: {}", e);
             (StatusCode::INTERNAL_SERVER_ERROR, "Failed to save state").into_response()
+        }
+    }
+}
+
+pub async fn get_connections_handler(State(state): State<AppState>) -> Response {
+    let (_, _, external_controller) = state.get_custom_fields().await;
+    let url = format!("http://{}/connections", external_controller);
+
+    let client = reqwest::Client::new();
+    match client.get(&url).send().await {
+        Ok(resp) => {
+            let status = resp.status();
+            if status.is_success() {
+                if let Ok(text) = resp.text().await {
+                    return (
+                        StatusCode::OK,
+                        [(axum::http::header::CONTENT_TYPE, "application/json")],
+                        text,
+                    )
+                        .into_response();
+                }
+            }
+            (
+                StatusCode::BAD_GATEWAY,
+                format!("Failed to fetch connections: HTTP {}", status),
+            )
+                .into_response()
+        }
+        Err(e) => {
+            error!("Failed to fetch connections: {}", e);
+            (
+                StatusCode::BAD_GATEWAY,
+                format!("Failed to fetch connections: {}", e),
+            )
+                .into_response()
         }
     }
 }

@@ -13,6 +13,7 @@ pub struct AppState {
     pub persisted_state: Arc<RwLock<PersistedState>>,
     pub sing_box_path: PathBuf,
     pub sing_box_process: Arc<tokio::sync::Mutex<Option<tokio::process::Child>>>,
+    pub start_time: Arc<tokio::sync::Mutex<Option<chrono::DateTime<chrono::Utc>>>>,
 }
 
 #[derive(Serialize, Deserialize, Default, Clone)]
@@ -193,6 +194,8 @@ impl AppState {
         {
             Ok(child) => {
                 *process_lock = Some(child);
+                let mut start_time_lock = self.start_time.lock().await;
+                *start_time_lock = Some(chrono::Utc::now());
                 log::info!("sing-box process started/restarted successfully");
                 Ok(())
             }

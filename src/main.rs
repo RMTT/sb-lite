@@ -83,6 +83,7 @@ async fn main() {
         persisted_state: Arc::new(RwLock::new(persisted_state.clone())),
         sing_box_path,
         sing_box_process: Arc::new(tokio::sync::Mutex::new(None)),
+        start_time: Arc::new(tokio::sync::Mutex::new(None)),
     };
 
     if persisted_state.auto_start {
@@ -114,6 +115,8 @@ async fn main() {
                             Ok(child) => {
                                 let mut process_lock = shared_state.sing_box_process.lock().await;
                                 *process_lock = Some(child);
+                                let mut start_time_lock = shared_state.start_time.lock().await;
+                                *start_time_lock = Some(chrono::Utc::now());
                                 info!("sing-box auto-started successfully on boot.");
                             }
                             Err(e) => {
