@@ -41,7 +41,7 @@ pub fn create_router(state: AppState) -> Router {
         .route("/api/sing-box/autostart", post(toggle_auto_start_handler))
         .route("/api/sing-box/connections", get(get_connections_handler))
         .route(
-            "/api/sing-box/connections/:id",
+            "/api/sing-box/connections/{id}",
             axum::routing::delete(close_connection_handler),
         )
         .route("/api/sing-box/proxies", get(get_proxies_handler))
