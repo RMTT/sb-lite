@@ -2,8 +2,10 @@ use sha2::Digest;
 use std::env;
 use std::fs;
 use std::io::{Read, Write};
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::process::Command;
+
+const CORE_VERSION: &'static str = "1.12.14";
 
 fn get_target_os_arch() -> (&'static str, &'static str, &'static str) {
     let target = env::var("TARGET").expect("TARGET environment variable not set");
@@ -34,7 +36,7 @@ fn get_target_os_arch() -> (&'static str, &'static str, &'static str) {
 }
 
 fn download_and_extract_sing_box() {
-    let version = "1.10.7"; // Update version as needed
+    let version = CORE_VERSION;
     let (os, arch, ext) = get_target_os_arch();
     let filename = format!("sing-box-{}-{}-{}{}", version, os, arch, ext);
     let url = format!(
@@ -131,7 +133,7 @@ fn download_and_extract_sing_box() {
     file.read_to_end(&mut data)
         .expect("Failed to read extracted binary");
 
-    let compressed = zstd::encode_all(&*data, 9).expect("Failed to compress binary");
+    let compressed = zstd::encode_all(&*data, 22).expect("Failed to compress binary");
     let mut zst_file = fs::File::create(&dest_zst_path).expect("Failed to create zst file");
     zst_file
         .write_all(&compressed)
