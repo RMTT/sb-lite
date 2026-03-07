@@ -157,15 +157,16 @@ pub async fn delete_config_handler(
 
             // If the deleted config was active, optionally clear active config state
             if let Some(active) = state.get_active_config().await
-                && active == safe_name {
-                    let _ = state.set_active_config("".to_string()).await;
-                    if let Err(e) = crate::merge::generate_and_write_active_config(&state).await {
-                        error!(
-                            "Failed to generate and write active config after deletion: {}",
-                            e
-                        );
-                    }
+                && active == safe_name
+            {
+                let _ = state.set_active_config("".to_string()).await;
+                if let Err(e) = crate::merge::generate_and_write_active_config(&state).await {
+                    error!(
+                        "Failed to generate and write active config after deletion: {}",
+                        e
+                    );
                 }
+            }
 
             (StatusCode::OK, "Config deleted").into_response()
         }
@@ -202,13 +203,14 @@ pub async fn update_config_handler(
 
             if let Some(active) = state.get_active_config().await
                 && active == safe_name
-                    && let Err(e) = crate::merge::generate_and_write_active_config(&state).await {
-                        error!(
-                            "Failed to generate and write active config after update: {}",
-                            e
-                        );
-                        return (StatusCode::BAD_REQUEST, e).into_response();
-                    }
+                && let Err(e) = crate::merge::generate_and_write_active_config(&state).await
+            {
+                error!(
+                    "Failed to generate and write active config after update: {}",
+                    e
+                );
+                return (StatusCode::BAD_REQUEST, e).into_response();
+            }
 
             (StatusCode::OK, "Config updated").into_response()
         }
@@ -282,14 +284,13 @@ pub async fn apply_config_handler(
         }
     };
 
-    if !is_running
-        && let Err(e) = state.restart_sing_box(false).await {
-            return (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                format!("Config applied but failed to start sing-box: {}", e),
-            )
-                .into_response();
-        }
+    if !is_running && let Err(e) = state.start_sing_box(false).await {
+        return (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("Config applied but failed to start sing-box: {}", e),
+        )
+            .into_response();
+    }
 
     (StatusCode::OK, "Config applied successfully").into_response()
 }
@@ -299,18 +300,19 @@ pub async fn get_merged_config_handler(State(state): State<AppState>) -> Respons
     let mut read_result = tokio::fs::read_to_string(&tmp_path).await;
 
     if let Err(e) = &read_result
-        && e.kind() == std::io::ErrorKind::NotFound {
-            if let Err(gen_err) = crate::merge::generate_and_write_active_config(&state).await {
-                error!("Failed to generate merged config: {}", gen_err);
-                return (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    "Failed to generate merged config",
-                )
-                    .into_response();
-            }
-            // Try reading again
-            read_result = tokio::fs::read_to_string(&tmp_path).await;
+        && e.kind() == std::io::ErrorKind::NotFound
+    {
+        if let Err(gen_err) = crate::merge::generate_and_write_active_config(&state).await {
+            error!("Failed to generate merged config: {}", gen_err);
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Failed to generate merged config",
+            )
+                .into_response();
         }
+        // Try reading again
+        read_result = tokio::fs::read_to_string(&tmp_path).await;
+    }
 
     match read_result {
         Ok(content) => (
@@ -377,30 +379,31 @@ pub async fn validate_subscription_handler(
         Ok(resp) => {
             let status = resp.status();
             if status.is_success()
-                && let Ok(text) = resp.text().await {
-                    // Try to parse it to ensure it's valid SIP008
-                    match serde_json::from_str::<Sip008Data>(&text) {
-                        Ok(_data) => {
-                            // Valid format
-                            let response_data = ValidateSubscriptionResponse {
-                                raw_data: text,
-                                last_fetched: chrono::Utc::now(),
-                            };
-                            return (StatusCode::OK, Json(response_data)).into_response();
-                        }
-                        Err(e) => {
-                            error!(
-                                "Failed to parse subscription {} as SIP008: {}",
-                                payload.url, e
-                            );
-                            return (
-                                StatusCode::BAD_REQUEST,
-                                "Subscription data is not in a supported format (SIP008)",
-                            )
-                                .into_response();
-                        }
+                && let Ok(text) = resp.text().await
+            {
+                // Try to parse it to ensure it's valid SIP008
+                match serde_json::from_str::<Sip008Data>(&text) {
+                    Ok(_data) => {
+                        // Valid format
+                        let response_data = ValidateSubscriptionResponse {
+                            raw_data: text,
+                            last_fetched: chrono::Utc::now(),
+                        };
+                        return (StatusCode::OK, Json(response_data)).into_response();
+                    }
+                    Err(e) => {
+                        error!(
+                            "Failed to parse subscription {} as SIP008: {}",
+                            payload.url, e
+                        );
+                        return (
+                            StatusCode::BAD_REQUEST,
+                            "Subscription data is not in a supported format (SIP008)",
+                        )
+                            .into_response();
                     }
                 }
+            }
             (
                 StatusCode::BAD_GATEWAY,
                 format!("Failed to fetch subscription: HTTP {}", status),
@@ -434,41 +437,41 @@ pub async fn update_subscription_handler(
         Ok(resp) => {
             let status = resp.status();
             if status.is_success()
-                && let Ok(text) = resp.text().await {
-                    match serde_json::from_str::<Sip008Data>(&text) {
-                        Ok(_) => {
-                            if let Err(e) = state
-                                .update_subscription(index, chrono::Utc::now(), text)
-                                .await
-                            {
-                                return (
-                                    StatusCode::INTERNAL_SERVER_ERROR,
-                                    format!("Failed to update subscription state: {}", e),
-                                )
-                                    .into_response();
-                            }
-                            info!("Successfully updated subscription: {}", url);
-                            // Regenerate config if there is an active one
-                            if let Err(e) =
-                                crate::merge::generate_and_write_active_config(&state).await
-                            {
-                                error!(
-                                    "Failed to generate and write active config after updating subscription: {}",
-                                    e
-                                );
-                            }
-                            return (StatusCode::OK, "Subscription updated").into_response();
-                        }
-                        Err(e) => {
-                            error!("Failed to parse subscription {} as SIP008: {}", url, e);
+                && let Ok(text) = resp.text().await
+            {
+                match serde_json::from_str::<Sip008Data>(&text) {
+                    Ok(_) => {
+                        if let Err(e) = state
+                            .update_subscription(index, chrono::Utc::now(), text)
+                            .await
+                        {
                             return (
-                                StatusCode::BAD_REQUEST,
-                                "Fetched subscription data is not in a supported format (SIP008)",
+                                StatusCode::INTERNAL_SERVER_ERROR,
+                                format!("Failed to update subscription state: {}", e),
                             )
                                 .into_response();
                         }
+                        info!("Successfully updated subscription: {}", url);
+                        // Regenerate config if there is an active one
+                        if let Err(e) = crate::merge::generate_and_write_active_config(&state).await
+                        {
+                            error!(
+                                "Failed to generate and write active config after updating subscription: {}",
+                                e
+                            );
+                        }
+                        return (StatusCode::OK, "Subscription updated").into_response();
+                    }
+                    Err(e) => {
+                        error!("Failed to parse subscription {} as SIP008: {}", url, e);
+                        return (
+                            StatusCode::BAD_REQUEST,
+                            "Fetched subscription data is not in a supported format (SIP008)",
+                        )
+                            .into_response();
                     }
                 }
+            }
             (
                 StatusCode::BAD_GATEWAY,
                 format!("Failed to fetch subscription: HTTP {}", status),
@@ -537,7 +540,7 @@ pub async fn get_sing_box_status_handler(State(state): State<AppState>) -> Respo
 }
 
 pub async fn start_sing_box_handler(State(state): State<AppState>) -> Response {
-    match state.restart_sing_box(false).await {
+    match state.start_sing_box(false).await {
         Ok(_) => (StatusCode::OK, "sing-box started").into_response(),
         Err(e) => {
             if e == "sing-box is already running" {
@@ -600,14 +603,15 @@ pub async fn get_connections_handler(State(state): State<AppState>) -> Response 
         Ok(resp) => {
             let status = resp.status();
             if status.is_success()
-                && let Ok(text) = resp.text().await {
-                    return (
-                        StatusCode::OK,
-                        [(axum::http::header::CONTENT_TYPE, "application/json")],
-                        text,
-                    )
-                        .into_response();
-                }
+                && let Ok(text) = resp.text().await
+            {
+                return (
+                    StatusCode::OK,
+                    [(axum::http::header::CONTENT_TYPE, "application/json")],
+                    text,
+                )
+                    .into_response();
+            }
             (
                 StatusCode::BAD_GATEWAY,
                 format!("Failed to fetch connections: HTTP {}", status),
@@ -634,14 +638,15 @@ pub async fn get_proxies_handler(State(state): State<AppState>) -> Response {
         Ok(resp) => {
             let status = resp.status();
             if status.is_success()
-                && let Ok(text) = resp.text().await {
-                    return (
-                        StatusCode::OK,
-                        [(axum::http::header::CONTENT_TYPE, "application/json")],
-                        text,
-                    )
-                        .into_response();
-                }
+                && let Ok(text) = resp.text().await
+            {
+                return (
+                    StatusCode::OK,
+                    [(axum::http::header::CONTENT_TYPE, "application/json")],
+                    text,
+                )
+                    .into_response();
+            }
             (
                 StatusCode::BAD_GATEWAY,
                 format!("Failed to fetch proxies: HTTP {}", status),

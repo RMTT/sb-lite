@@ -160,7 +160,7 @@ impl AppState {
         }
     }
 
-    pub async fn restart_sing_box(&self, force_restart: bool) -> Result<(), String> {
+    pub async fn start_sing_box(&self, force_restart: bool) -> Result<(), String> {
         self.check_config().await?;
 
         let mut process_lock = self.sing_box_process.lock().await;
@@ -210,7 +210,7 @@ impl AppState {
                         use tokio::io::{AsyncBufReadExt, BufReader};
                         let mut reader = BufReader::new(stderr).lines();
                         while let Ok(Some(line)) = reader.next_line().await {
-                            log::error!("{}", line);
+                            log::warn!("{}", line);
                         }
                     });
                 }
