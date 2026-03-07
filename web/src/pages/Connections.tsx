@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { X, Globe, ArrowRight, Network, Search } from 'lucide-react'
+import { X, Globe, ArrowRight, Network, Search, FileCode2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useOutletContext } from 'react-router-dom'
 
@@ -123,7 +123,8 @@ export function Connections() {
             targetStr.toLowerCase().includes(query) ||
             conn.metadata.network.toLowerCase().includes(query) ||
             conn.chains.join(' ').toLowerCase().includes(query) ||
-            conn.metadata.type.toLowerCase().includes(query)
+            conn.metadata.type.toLowerCase().includes(query) ||
+            conn.rule.toLowerCase().includes(query)
         )
     })
 
@@ -132,10 +133,11 @@ export function Connections() {
             <div className="w-full">
                 {/* Header Columns */}
                 <div className="grid grid-cols-12 gap-4 pb-3 border-b border-zinc-800/50 text-[10px] font-bold text-zinc-500 uppercase tracking-widest px-4 pt-4">
-                    <div className="col-span-6 sm:col-span-5 pl-12">Destination</div>
-                    <div className="col-span-4 hidden sm:block">Routing</div>
-                    <div className="col-span-4 sm:col-span-2 text-right">Traffic</div>
-                    <div className="col-span-2 sm:col-span-1 text-right">Action</div>
+                    <div className="col-span-5 sm:col-span-4 pl-12">Destination</div>
+                    <div className="col-span-3 hidden sm:block">Routing</div>
+                    <div className="col-span-2 hidden lg:block">Rule</div>
+                    <div className="col-span-5 sm:col-span-3 lg:col-span-2 text-right">Traffic</div>
+                    <div className="col-span-2 sm:col-span-2 lg:col-span-1 text-right">Action</div>
                 </div>
 
                 <div className="divide-y divide-zinc-800/50 max-h-[65vh] overflow-y-auto custom-scrollbar">
@@ -150,10 +152,13 @@ export function Connections() {
                             const targetHost = conn.metadata.host || conn.metadata.destinationIP;
                             const targetStr = `${targetHost}:${conn.metadata.destinationPort}`;
 
+                            // Reverse the chains for display
+                            const reversedChains = [...conn.chains].reverse()
+
                             return (
                                 <div key={conn.id} className="grid grid-cols-12 gap-4 items-center p-4 hover:bg-zinc-800/20 transition-colors group">
                                     {/* Destination Column */}
-                                    <div className="col-span-6 sm:col-span-5 flex items-center gap-4 overflow-hidden">
+                                    <div className="col-span-5 sm:col-span-4 flex items-center gap-4 overflow-hidden">
                                         <div className="w-10 h-10 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-400 shrink-0">
                                             <Globe className="w-5 h-5" />
                                         </div>
@@ -162,7 +167,7 @@ export function Connections() {
                                                 <span className="text-sm font-semibold text-zinc-200 truncate" title={targetStr}>
                                                     {targetStr}
                                                 </span>
-                                                <span className="px-1.5 py-0.5 rounded bg-zinc-800 border border-zinc-700 text-[10px] font-bold tracking-widest uppercase text-zinc-400 shrink-0">
+                                                <span className="px-1.5 py-0.5 rounded bg-zinc-800 border border-zinc-700 text-[10px] font-bold tracking-widest uppercase text-zinc-400 shrink-0 hidden xl:inline-block">
                                                     {conn.metadata.network}
                                                 </span>
                                             </div>
@@ -171,22 +176,30 @@ export function Connections() {
                                     </div>
 
                                     {/* Routing Column */}
-                                    <div className="col-span-4 hidden sm:flex items-center gap-3 text-xs text-zinc-500 overflow-hidden">
+                                    <div className="col-span-3 hidden sm:flex items-center gap-3 text-xs text-zinc-500 overflow-hidden">
                                         <div className="flex items-center gap-1.5 min-w-0">
                                             <Network className="w-3 h-3 shrink-0" />
-                                            <div className="truncate flex items-center gap-1" title={conn.chains.join(' → ')}>
-                                                {conn.chains.map((chain, idx) => (
+                                            <div className="truncate flex items-center gap-1" title={reversedChains.join(' → ')}>
+                                                {reversedChains.map((chain, idx) => (
                                                     <span key={idx} className="flex items-center gap-1">
                                                         <span className="text-zinc-300 truncate">{chain}</span>
-                                                        {idx < conn.chains.length - 1 && <ArrowRight className="w-3 h-3 text-zinc-600 shrink-0" />}
+                                                        {idx < reversedChains.length - 1 && <ArrowRight className="w-3 h-3 text-zinc-600 shrink-0" />}
                                                     </span>
                                                 ))}
                                             </div>
                                         </div>
                                     </div>
 
+                                    {/* Rule Column */}
+                                    <div className="col-span-2 hidden lg:flex items-center gap-1.5 text-xs text-zinc-500 overflow-hidden">
+                                        <FileCode2 className="w-3 h-3 shrink-0" />
+                                        <span className="truncate text-zinc-400" title={conn.rule}>
+                                            {conn.rule || 'None'}
+                                        </span>
+                                    </div>
+
                                     {/* Traffic Column */}
-                                    <div className="col-span-4 sm:col-span-2 flex flex-col items-end gap-1 text-xs justify-center">
+                                    <div className="col-span-5 sm:col-span-3 lg:col-span-2 flex flex-col items-end gap-1 text-xs justify-center">
                                         <div className="flex items-center gap-1.5 text-zinc-300">
                                             <span className="text-emerald-400">↓</span> {formatBytes(conn.download)}
                                         </div>
@@ -196,7 +209,7 @@ export function Connections() {
                                     </div>
 
                                     {/* Action Column */}
-                                    <div className="col-span-2 sm:col-span-1 flex items-center justify-end">
+                                    <div className="col-span-2 sm:col-span-2 lg:col-span-1 flex items-center justify-end">
                                         <button
                                             onClick={() => handleCloseConnection(conn.id)}
                                             className="w-8 h-8 flex items-center justify-center rounded text-zinc-500 hover:text-red-400 hover:bg-zinc-800/80 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
