@@ -2,7 +2,7 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react'
 import type { ReactNode } from 'react'
 
-interface SingBoxStatus {
+interface CoreStatus {
   is_running: boolean
   version: string | null
   auto_start: boolean
@@ -10,13 +10,13 @@ interface SingBoxStatus {
 }
 
 interface SingBoxContextType {
-  status: SingBoxStatus
+  status: CoreStatus
   isLoading: boolean
   refreshStatus: () => Promise<void>
   setAutoStart: (enabled: boolean) => void
 }
 
-const defaultStatus: SingBoxStatus = {
+const defaultStatus: CoreStatus = {
   is_running: false,
   version: null,
   auto_start: false,
@@ -26,7 +26,7 @@ const defaultStatus: SingBoxStatus = {
 const SingBoxContext = createContext<SingBoxContextType | undefined>(undefined)
 
 export function SingBoxProvider({ children }: { children: ReactNode }) {
-  const [status, setStatus] = useState<SingBoxStatus>(defaultStatus)
+  const [status, setStatus] = useState<CoreStatus>(defaultStatus)
   const [isLoading, setIsLoading] = useState(true)
 
   const fetchStatus = useCallback(async () => {
