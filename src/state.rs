@@ -137,7 +137,7 @@ impl AppState {
     }
 
     pub async fn check_config(&self) -> Result<(), String> {
-        let tmp_path = std::path::PathBuf::from("/tmp/sing-box-lite-active.json");
+        let tmp_path = std::path::PathBuf::from("/tmp/sblite-active.json");
         if !tmp_path.exists() {
             return Err("Merged config not found".to_string());
         }
@@ -181,7 +181,7 @@ impl AppState {
             }
         }
 
-        let tmp_path = std::path::PathBuf::from("/tmp/sing-box-lite-active.json");
+        let tmp_path = std::path::PathBuf::from("/tmp/sblite-active.json");
         match tokio::process::Command::new(&self.sing_box_path)
             .arg("run")
             .arg("-c")

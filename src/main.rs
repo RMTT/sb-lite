@@ -23,7 +23,7 @@ struct Args {
     #[arg(short, long, default_value = "127.0.0.1:8180")]
     listen: String,
     /// State directory containing sing-box config and other data
-    #[arg(long, default_value = "/var/lib/sing-box-lite")]
+    #[arg(long, default_value = "/var/lib/sblite")]
     state_directory: PathBuf,
 }
 
@@ -135,7 +135,7 @@ async fn main() {
         // Ensure merged config exists
         match crate::merge::generate_and_write_active_config(&shared_state).await {
             Ok(_) => {
-                let tmp_path = std::path::PathBuf::from("/tmp/sing-box-lite-active.json");
+                let tmp_path = std::path::PathBuf::from("/tmp/sblite-active.json");
 
                 match tokio::process::Command::new(&shared_state.sing_box_path)
                     .arg("check")

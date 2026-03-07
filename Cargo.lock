@@ -1671,6 +1671,32 @@ dependencies = [
 ]
 
 [[package]]
+name = "sblite"
+version = "0.1.0"
+dependencies = [
+ "axum",
+ "bincode",
+ "chrono",
+ "clap",
+ "env_logger",
+ "flate2",
+ "futures-util",
+ "log",
+ "mime_guess",
+ "regex",
+ "reqwest",
+ "rust-embed",
+ "serde",
+ "serde_json",
+ "sha2",
+ "tar",
+ "tokio",
+ "tokio-tungstenite",
+ "zip",
+ "zstd",
+]
+
+[[package]]
 name = "schannel"
 version = "0.1.28"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1811,32 +1837,6 @@ name = "simd-adler32"
 version = "0.3.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e320a6c5ad31d271ad523dcf3ad13e2767ad8b1cb8f047f75a8aeaf8da139da2"
-
-[[package]]
-name = "sing-box-lite"
-version = "0.1.0"
-dependencies = [
- "axum",
- "bincode",
- "chrono",
- "clap",
- "env_logger",
- "flate2",
- "futures-util",
- "log",
- "mime_guess",
- "regex",
- "reqwest",
- "rust-embed",
- "serde",
- "serde_json",
- "sha2",
- "tar",
- "tokio",
- "tokio-tungstenite",
- "zip",
- "zstd",
-]
 
 [[package]]
 name = "slab"

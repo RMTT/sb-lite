@@ -149,7 +149,7 @@ pub async fn generate_and_write_active_config(state: &AppState) -> Result<(), St
         Err(e) => return Err(format!("Failed to serialize merged config: {}", e)),
     };
 
-    let tmp_path = PathBuf::from("/tmp/sing-box-lite-active.json");
+    let tmp_path = PathBuf::from("/tmp/sblite-active.json");
     if let Err(e) = tokio::fs::write(&tmp_path, merged_content).await {
         return Err(format!("Failed to write temporary config: {}", e));
     }

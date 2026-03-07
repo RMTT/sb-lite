@@ -1,4 +1,4 @@
-# sing-box-lite
+# sblite
 
 ## Dev tips
 
