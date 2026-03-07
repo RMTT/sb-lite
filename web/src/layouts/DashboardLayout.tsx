@@ -32,7 +32,7 @@ export function DashboardLayout() {
             <Network className="w-5 h-5 text-white" />
           </div>
           <div className={`flex flex-col whitespace-nowrap transition-all duration-300 ${isCollapsed ? 'opacity-0 w-0' : 'opacity-100 w-auto'}`}>
-            <h1 className="text-sm font-bold tracking-tight text-zinc-100 leading-tight">sing-box</h1>
+            <h1 className="text-sm font-bold tracking-tight text-zinc-100 leading-tight">sb-lite</h1>
             <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-semibold leading-tight">NETWORK CORE</p>
           </div>
         </div>

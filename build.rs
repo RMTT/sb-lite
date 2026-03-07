@@ -64,7 +64,7 @@ fn download_and_extract_sing_box() {
         println!("cargo:warning=Downloading sing-box from {}", url);
 
         let client = reqwest::blocking::Client::builder()
-            .user_agent("sing-box-lite-build")
+            .user_agent("sblite-build")
             .build()
             .expect("Failed to build reqwest client");
 

@@ -1,5 +1,5 @@
 [package]
-name = "sing-box-lite"
+name = "sblite"
 version = "0.1.0"
 edition = "2024"
 

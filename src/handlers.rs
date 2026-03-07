@@ -299,7 +299,7 @@ pub async fn apply_config_handler(
 }
 
 pub async fn get_merged_config_handler(State(state): State<AppState>) -> Response {
-    let tmp_path = std::path::PathBuf::from("/tmp/sing-box-lite-active.json");
+    let tmp_path = std::path::PathBuf::from("/tmp/sblite-active.json");
     let mut read_result = tokio::fs::read_to_string(&tmp_path).await;
 
     if let Err(e) = &read_result {
