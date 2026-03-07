@@ -1,4 +1,4 @@
-import { Upload, Plus, FileText, Play, Edit2, Trash2, GitMerge, Link, RefreshCw, X, Code } from 'lucide-react'
+import { Upload, Plus, FileText, Play, Edit2, Trash2, GitMerge, Link, RefreshCw, X, Code, Wand2 } from 'lucide-react'
 import { useState, useEffect, useRef } from 'react'
 import Editor from '@monaco-editor/react'
 import { toast } from 'sonner'
@@ -18,6 +18,7 @@ export interface Selector {
 export interface Subscription {
     url: string
     prefix?: string
+    routing_mark?: string
     last_fetched: string | null
     raw_data: string | null
 }
@@ -37,6 +38,7 @@ export function Config() {
   // Custom Fields State
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([])
   const [selectors, setSelectors] = useState<Selector[]>([])
+  const [newRoutingMark, setNewRoutingMark] = useState('')
   const [externalController, setExternalController] = useState('127.0.0.1:9091')
   const [, setIsSavingCustomFields] = useState(false)
 
@@ -143,6 +145,17 @@ export function Config() {
       } finally {
           setIsLoading(false)
       }
+  }
+
+  const handleFormatConfig = () => {
+    try {
+      const parsed = JSON.parse(configContent)
+      const formatted = JSON.stringify(parsed, null, 2)
+      setConfigContent(formatted)
+      toast.success('Configuration formatted successfully.')
+    } catch {
+      toast.error('Invalid JSON format. Please fix errors before formatting.')
+    }
   }
 
   const handleSaveEditor = async () => {
@@ -382,6 +395,7 @@ export function Config() {
           const newSub: Subscription = {
               url: urlToAdd,
               prefix: newPrefix.trim() || undefined,
+              routing_mark: newRoutingMark.trim() || undefined,
               last_fetched: validationData.last_fetched,
               raw_data: validationData.raw_data
           }
@@ -389,6 +403,7 @@ export function Config() {
           setSubscriptions(updatedSubs)
           setNewUrl('')
           setNewPrefix('')
+          setNewRoutingMark('')
 
           setIsSavingCustomFields(true)
           const response = await fetch('/api/custom-fields', {
@@ -660,7 +675,17 @@ export function Config() {
                   value={newPrefix}
                   onChange={(e) => setNewPrefix(e.target.value)}
                   placeholder="Prefix (e.g. US)"
-                  className="w-40 bg-[#09090b] border border-zinc-800 rounded-md px-4 py-2.5 text-sm text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors"
+                  className="w-32 bg-[#09090b] border border-zinc-800 rounded-md px-4 py-2.5 text-sm text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors"
+                  onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleAddUrl()
+                  }}
+              />
+              <input
+                  type="text"
+                  value={newRoutingMark}
+                  onChange={(e) => setNewRoutingMark(e.target.value)}
+                  placeholder="Routing Mark"
+                  className="w-32 bg-[#09090b] border border-zinc-800 rounded-md px-4 py-2.5 text-sm text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors"
                   onKeyDown={(e) => {
                       if (e.key === 'Enter') handleAddUrl()
                   }}
@@ -1022,6 +1047,14 @@ export function Config() {
                           </div>
                       </div>
                       <div className="flex items-center gap-4">
+                          <button
+                              onClick={handleFormatConfig}
+                              disabled={isSaving}
+                              className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all shadow-sm bg-zinc-800 text-zinc-300 hover:text-white hover:bg-zinc-700 disabled:opacity-50"
+                          >
+                              <Wand2 className="w-4 h-4" />
+                              Format
+                          </button>
                           <button
                               onClick={handleSaveEditor}
                               disabled={!hasEditorChanges || isSaving}

@@ -71,6 +71,21 @@ pub async fn generate_and_write_active_config(state: &AppState) -> Result<(), St
                             outbound["password"] = serde_json::Value::String(password);
                         }
 
+                        if let Some(routing_mark) = &sub.routing_mark {
+                            match routing_mark.parse::<i32>() {
+                                Ok(mark) => {
+                                    outbound["routing_mark"] =
+                                        serde_json::Value::Number(serde_json::Number::from(mark));
+                                }
+                                Err(e) => {
+                                    error!(
+                                        "Failed to parse routing_mark '{}' as integer for tag '{}': {}",
+                                        routing_mark, tag, e
+                                    );
+                                }
+                            }
+                        }
+
                         new_outbounds.push(outbound);
                         all_tags.push(tag);
                     }

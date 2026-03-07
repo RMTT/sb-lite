@@ -21,6 +21,8 @@ pub struct Subscription {
     pub url: String,
     #[serde(default)]
     pub prefix: Option<String>,
+    #[serde(default)]
+    pub routing_mark: Option<String>,
     pub last_fetched: Option<chrono::DateTime<chrono::Utc>>,
     pub raw_data: Option<String>,
 }
