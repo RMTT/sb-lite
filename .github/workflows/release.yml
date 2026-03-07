@@ -62,9 +62,88 @@ jobs:
           path: dist/${{ matrix.artifact_name }}.tar.gz
           retention-days: 1
 
+  openwrt-apk:
+    name: Build OpenWrt APK for ${{ matrix.arch }}
+    needs: build
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - arch: x86_64
+            target: x86/64
+            artifact: sblite-amd64-linux
+          - arch: aarch64
+            target: mediatek/mt7986
+            artifact: sblite-arm64-linux
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: /tmp/${{ matrix.artifact }}
+
+      - name: Extract binary
+        run: |
+          tar -xzf /tmp/${{ matrix.artifact }}/${{ matrix.artifact }}.tar.gz -C /tmp
+          chmod +x /tmp/${{ matrix.artifact }}/${{ matrix.artifact }}
+
+      - name: Setup OpenWrt SDK
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential libncurses5-dev zlib1g-dev gawk git gettext libssl-dev xsltproc rsync wget unzip python3
+
+          # Use the generic downloads page for snapshot targets
+          BASE_URL="https://downloads.openwrt.org/snapshots/targets/${{ matrix.target }}"
+          wget -qO sha256sums "$BASE_URL/sha256sums"
+
+          # Find the SDK filename dynamically based on the target string
+          TARGET_SAFE=$(echo "${{ matrix.target }}" | tr '/' '-')
+          SDK_FILE=$(grep -oE "openwrt-sdk-$TARGET_SAFE.*Linux-x86_64.tar.xz" sha256sums | head -n 1)
+
+          if [ -z "$SDK_FILE" ]; then
+            echo "Error: Could not find SDK filename in sha256sums"
+            sh -c "exit 1"
+          fi
+
+          wget "$BASE_URL/$SDK_FILE" -O sdk.tar.xz
+          mkdir sdk
+          tar -xf sdk.tar.xz -C sdk --strip-components=1
+
+      - name: Build Package
+        run: |
+          cd sdk
+
+          # Enable APK format
+          echo "CONFIG_PACKAGE_FORMAT_APK=y" >> .config
+
+          # Create package directory
+          mkdir -p package/sblite/files
+          cp -r ../openwrt/* package/sblite/
+
+          # Run prepare to create the build_dir structure
+          make package/sblite/prepare V=s
+
+          # Copy our pre-compiled binary directly into the build directory
+          # The package Makefile defines PKG_NAME:=sblite, so the build dir is sblite-*
+          PKG_BUILD_DIR=$(find build_dir/ -type d -name "sblite-*" | head -n 1)
+          cp /tmp/${{ matrix.artifact }}/${{ matrix.artifact }} $PKG_BUILD_DIR/sblite
+
+          # Compile/package
+          make package/sblite/compile V=s
+
+      - name: Find and Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: sblite-openwrt-apk-${{ matrix.arch }}
+          path: sdk/bin/packages/*/base/sblite*.apk
+          retention-days: 1
+
   release:
     name: Create Release
-    needs: build
+    needs: [build, openwrt-apk]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -77,5 +156,7 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          files: artifacts/**/*.tar.gz
+          files: |
+            artifacts/**/*.tar.gz
+            artifacts/**/*.apk
           generate_release_notes: true
