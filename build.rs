@@ -4,7 +4,7 @@ use std::fs;
 use std::io::{Read, Write};
 use std::path::PathBuf;
 
-const CORE_VERSION: &'static str = "1.12.24";
+const CORE_VERSION: &str = "1.12.24";
 
 fn get_target_os_arch() -> (&'static str, &'static str, &'static str) {
     let target = env::var("TARGET").expect("TARGET environment variable not set");
