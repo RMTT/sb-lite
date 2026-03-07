@@ -1,10 +1,11 @@
 use crate::handlers::{
     apply_config_handler, close_connection_handler, delete_config_handler, get_config_handler,
     get_connections_handler, get_custom_fields_handler, get_merged_config_handler,
-    get_proxies_handler, get_proxy_delay_handler, get_sing_box_status_handler,
-    list_configs_handler, start_sing_box_handler, static_handler, stop_sing_box_handler,
-    toggle_auto_start_handler, update_config_handler, update_custom_fields_handler,
-    update_proxy_handler, update_subscription_handler, validate_subscription_handler,
+    get_proxies_handler, get_proxy_delay_handler, get_sing_box_logs_handler,
+    get_sing_box_status_handler, list_configs_handler, start_sing_box_handler, static_handler,
+    stop_sing_box_handler, toggle_auto_start_handler, update_config_handler,
+    update_custom_fields_handler, update_proxy_handler, update_subscription_handler,
+    validate_subscription_handler,
 };
 use crate::state::AppState;
 use axum::{
@@ -36,6 +37,7 @@ pub fn create_router(state: AppState) -> Router {
             post(validate_subscription_handler),
         )
         .route("/api/sing-box/status", get(get_sing_box_status_handler))
+        .route("/api/sing-box/logs", get(get_sing_box_logs_handler))
         .route("/api/sing-box/start", post(start_sing_box_handler))
         .route("/api/sing-box/stop", post(stop_sing_box_handler))
         .route("/api/sing-box/autostart", post(toggle_auto_start_handler))

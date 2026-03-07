@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
-import { Network, LayoutDashboard, Settings, Activity } from 'lucide-react'
+import { Network, LayoutDashboard, Settings, Activity, FileText } from 'lucide-react'
 
 export function DashboardLayout() {
   const [isCollapsed, setIsCollapsed] = useState(() => {
@@ -50,6 +50,16 @@ export function DashboardLayout() {
           </NavLink>
 
           <NavLink
+            to="/config"
+            className={({ isActive }) => `flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+              isActive ? 'bg-zinc-800 text-white' : 'text-zinc-400 hover:bg-zinc-900/50 hover:text-zinc-100'
+            }`}
+          >
+            <Settings className="w-5 h-5 shrink-0" strokeWidth={2} />
+            <span className={`text-sm font-medium whitespace-nowrap transition-all duration-300 ${isCollapsed ? 'opacity-0 w-0 hidden' : 'opacity-100 w-auto'}`}>Config</span>
+          </NavLink>
+
+          <NavLink
             to="/connections"
             className={({ isActive }) => `flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
               isActive ? 'bg-zinc-800 text-white' : 'text-zinc-400 hover:bg-zinc-900/50 hover:text-zinc-100'
@@ -60,13 +70,13 @@ export function DashboardLayout() {
           </NavLink>
 
           <NavLink
-            to="/config"
+            to="/logs"
             className={({ isActive }) => `flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
               isActive ? 'bg-zinc-800 text-white' : 'text-zinc-400 hover:bg-zinc-900/50 hover:text-zinc-100'
             }`}
           >
-            <Settings className="w-5 h-5 shrink-0" strokeWidth={2} />
-            <span className={`text-sm font-medium whitespace-nowrap transition-all duration-300 ${isCollapsed ? 'opacity-0 w-0 hidden' : 'opacity-100 w-auto'}`}>Config</span>
+            <FileText className="w-5 h-5 shrink-0" strokeWidth={2} />
+            <span className={`text-sm font-medium whitespace-nowrap transition-all duration-300 ${isCollapsed ? 'opacity-0 w-0 hidden' : 'opacity-100 w-auto'}`}>Logs</span>
           </NavLink>
         </nav>
       </aside>
@@ -77,7 +87,7 @@ export function DashboardLayout() {
         <header className="sticky top-0 z-10 flex items-center justify-between px-6 py-4 border-b border-zinc-800/50 bg-[#09090b]/80 backdrop-blur-md">
            <div className="flex items-center gap-2">
                <span className="text-base font-semibold text-zinc-100">
-                  {location.pathname === '/' ? 'Dashboard Overview' : location.pathname === '/connections' ? 'Connections' : 'Configuration'}
+                  {location.pathname === '/' ? 'Dashboard Overview' : location.pathname === '/connections' ? 'Connections' : location.pathname === '/logs' ? 'Logs' : 'Configuration'}
                </span>
            </div>
            {/* Render injected header action if any */}

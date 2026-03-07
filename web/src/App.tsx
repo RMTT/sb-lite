@@ -4,6 +4,7 @@ import { DashboardLayout } from './layouts/DashboardLayout'
 import { Overview } from './pages/Overview'
 import { Config } from './pages/Config'
 import { Connections } from './pages/Connections'
+import { Logs } from './pages/Logs'
 import './App.css'
 
 function App() {
@@ -21,6 +22,7 @@ function App() {
           <Route index element={<Overview />} />
           <Route path="config" element={<Config />} />
           <Route path="connections" element={<Connections />} />
+          <Route path="logs" element={<Logs />} />
         </Route>
       </Routes>
     </BrowserRouter>

@@ -795,3 +795,129 @@ pub async fn close_connection_handler(
         }
     }
 }
+
+use axum::extract::ws::{Message, WebSocket, WebSocketUpgrade};
+use futures_util::{SinkExt, StreamExt};
+use tokio_tungstenite::{connect_async, tungstenite::protocol::Message as TungsteniteMessage};
+
+#[derive(serde::Deserialize)]
+pub struct LogsQuery {
+    pub level: Option<String>,
+}
+
+pub async fn get_sing_box_logs_handler(
+    ws: WebSocketUpgrade,
+    State(state): State<AppState>,
+    Query(query): Query<LogsQuery>,
+) -> Response {
+    let level = query.level.unwrap_or_else(|| "info".to_string());
+    ws.on_upgrade(move |socket| handle_logs_socket(socket, state, level))
+}
+
+async fn handle_logs_socket(mut socket: WebSocket, state: AppState, level: String) {
+    let (_, _, external_controller) = state.get_custom_fields().await;
+    let url = format!("ws://{}/logs?level={}", external_controller, level);
+
+    info!("Connecting to sing-box logs websocket at {}", url);
+
+    match connect_async(&url).await {
+        Ok((singbox_ws, _)) => {
+            info!("Connected to sing-box logs websocket");
+
+            let (mut client_tx, mut client_rx) = socket.split();
+            let (mut singbox_tx, mut singbox_rx) = singbox_ws.split();
+
+            let mut forward_task = tokio::spawn(async move {
+                while let Some(msg) = singbox_rx.next().await {
+                    match msg {
+                        Ok(TungsteniteMessage::Text(t)) => {
+                            if client_tx
+                                .send(Message::Text(t.as_str().into()))
+                                .await
+                                .is_err()
+                            {
+                                break;
+                            }
+                        }
+                        Ok(TungsteniteMessage::Binary(b)) => {
+                            if client_tx.send(Message::Binary(b.into())).await.is_err() {
+                                break;
+                            }
+                        }
+                        Ok(TungsteniteMessage::Ping(p)) => {
+                            if client_tx.send(Message::Ping(p.into())).await.is_err() {
+                                break;
+                            }
+                        }
+                        Ok(TungsteniteMessage::Pong(p)) => {
+                            if client_tx.send(Message::Pong(p.into())).await.is_err() {
+                                break;
+                            }
+                        }
+                        Ok(TungsteniteMessage::Close(c)) => {
+                            if let Some(c) = c {
+                                let _ = client_tx
+                                    .send(Message::Close(Some(axum::extract::ws::CloseFrame {
+                                        code: c.code.into(),
+                                        reason: c.reason.as_str().into(),
+                                    })))
+                                    .await;
+                            } else {
+                                let _ = client_tx.send(Message::Close(None)).await;
+                            }
+                            break;
+                        }
+                        Ok(TungsteniteMessage::Frame(_)) => {}
+                        Err(e) => {
+                            error!("Error reading from sing-box logs websocket: {}", e);
+                            break;
+                        }
+                    }
+                }
+            });
+
+            let mut read_task = tokio::spawn(async move {
+                while let Some(msg) = client_rx.next().await {
+                    match msg {
+                        Ok(Message::Text(t)) => {
+                            let _ = singbox_tx
+                                .send(TungsteniteMessage::Text(t.as_str().into()))
+                                .await;
+                        }
+                        Ok(Message::Binary(b)) => {
+                            let _ = singbox_tx.send(TungsteniteMessage::Binary(b.into())).await;
+                        }
+                        Ok(Message::Ping(p)) => {
+                            let _ = singbox_tx.send(TungsteniteMessage::Ping(p.into())).await;
+                        }
+                        Ok(Message::Pong(p)) => {
+                            let _ = singbox_tx.send(TungsteniteMessage::Pong(p.into())).await;
+                        }
+                        Ok(Message::Close(_)) => {
+                            let _ = singbox_tx.send(TungsteniteMessage::Close(None)).await;
+                            break;
+                        }
+                        Err(e) => {
+                            error!("Error reading from client logs websocket: {}", e);
+                            break;
+                        }
+                    }
+                }
+            });
+
+            tokio::select! {
+                _ = (&mut forward_task) => { read_task.abort(); }
+                _ = (&mut read_task) => { forward_task.abort(); }
+            }
+        }
+        Err(e) => {
+            error!("Failed to connect to sing-box logs websocket: {}", e);
+            let _ = socket
+                .send(Message::Close(Some(axum::extract::ws::CloseFrame {
+                    code: 1011,
+                    reason: "Failed to connect to upstream".into(),
+                })))
+                .await;
+        }
+    }
+}
