@@ -1019,7 +1019,7 @@ export function Config() {
                       </button>
                   </div>
 
-                  <div className="flex-1 relative bg-[#1e1e1e]">
+                  <div className="flex-1 min-h-0 relative bg-[#1e1e1e] overflow-hidden">
                       <CodeMirror
                           value={mergedConfigContent}
                           height="100%"
@@ -1091,7 +1091,7 @@ export function Config() {
                       </div>
                   </div>
 
-                  <div className="flex-1 relative bg-[#1e1e1e]">
+                  <div className="flex-1 min-h-0 relative bg-[#1e1e1e] overflow-hidden">
                       <CodeMirror
                           value={configContent}
                           height="100%"

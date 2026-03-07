@@ -293,7 +293,7 @@ export function Connections() {
                             </button>
                         </div>
 
-                        <div className="flex-1 relative bg-[#1e1e1e]">
+                        <div className="flex-1 min-h-0 relative bg-[#1e1e1e] overflow-hidden">
                             <CodeMirror
                                 value={JSON.stringify(selectedConnection, null, 2)}
                                 height="100%"
