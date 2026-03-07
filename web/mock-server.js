@@ -1,48 +1,32 @@
 import http from 'http';
 
+const baseConnection = {
+  "chains": ["smart", "google"],
+  "download": 68301,
+  "id": "325627fd-42fd-46be-beeb-25d9c5f62843",
+  "metadata": {
+    "destinationIP": "142.250.197.106",
+    "destinationPort": "443",
+    "dnsMode": "normal",
+    "host": "signaler-pa.clients6.google.com",
+    "network": "tcp",
+    "processPath": "",
+    "sourceIP": "172.172.0.1",
+    "sourcePort": "44600",
+    "type": "tun/tun-in"
+  },
+  "rule": "rule_set=geosite-google => route(google)",
+  "rulePayload": "",
+  "start": new Date(Date.now() - 50000).toISOString(),
+  "upload": 76948
+};
+
 const mockConnections = {
-  "connections": [
-    {
-      "chains": ["smart", "google"],
-      "download": 68301,
-      "id": "325627fd-42fd-46be-beeb-25d9c5f62843",
-      "metadata": {
-        "destinationIP": "142.250.197.106",
-        "destinationPort": "443",
-        "dnsMode": "normal",
-        "host": "signaler-pa.clients6.google.com",
-        "network": "tcp",
-        "processPath": "",
-        "sourceIP": "172.172.0.1",
-        "sourcePort": "44600",
-        "type": "tun/tun-in"
-      },
-      "rule": "rule_set=geosite-google => route(google)",
-      "rulePayload": "",
-      "start": new Date(Date.now() - 50000).toISOString(),
-      "upload": 76948
-    },
-    {
-      "chains": ["direct"],
-      "download": 10094688,
-      "id": "03a2ba3b-3344-4cfa-87da-caf8e9e8279b",
-      "metadata": {
-        "destinationIP": "183.214.153.60",
-        "destinationPort": "443",
-        "dnsMode": "normal",
-        "host": "i1.hdslb.com",
-        "network": "tcp",
-        "processPath": "",
-        "sourceIP": "172.172.0.1",
-        "sourcePort": "49904",
-        "type": "tun/tun-in"
-      },
-      "rule": "domain_suffix=[.cn canada.ca gc.ca...] rule_set=[geoip-cn geosite-cn] => route(direct)",
-      "rulePayload": "",
-      "start": new Date(Date.now() - 120000).toISOString(),
-      "upload": 175375
-    }
-  ],
+  "connections": Array.from({length: 30}, (_, i) => ({
+      ...baseConnection,
+      id: `id-${i}`,
+      metadata: { ...baseConnection.metadata, sourcePort: String(44600 + i) }
+  })),
   "downloadTotal": 6818055110,
   "memory": 25034752,
   "uploadTotal": 315720095

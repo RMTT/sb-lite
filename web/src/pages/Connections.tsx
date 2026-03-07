@@ -138,7 +138,7 @@ export function Connections() {
 
     return (
         <>
-            <div className="bg-zinc-900/50 border border-zinc-800/50 rounded-xl overflow-hidden shadow-sm flex flex-col h-[calc(100vh-160px)]">
+            <div className="bg-zinc-900/50 border border-zinc-800/50 rounded-xl overflow-hidden shadow-sm flex flex-col">
                 <div className="w-full flex-1 flex flex-col">
                     {/* Header Columns */}
                     <div className="grid grid-cols-12 gap-4 pb-3 border-b border-zinc-800/50 text-[10px] font-bold text-zinc-500 uppercase tracking-widest px-4 pt-4 shrink-0">
@@ -150,7 +150,7 @@ export function Connections() {
                         <div className="col-span-2 sm:col-span-1 text-right">Action</div>
                     </div>
 
-                    <div className="divide-y divide-zinc-800/50 flex-1 overflow-y-auto custom-scrollbar">
+                    <div className="divide-y divide-zinc-800/50">
                         {isLoading && connections.length === 0 ? (
                             <div className="p-8 text-center text-zinc-500 text-sm">Loading connections...</div>
                         ) : connections.length === 0 ? (
