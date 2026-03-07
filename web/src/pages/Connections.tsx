@@ -129,22 +129,6 @@ export function Connections() {
 
     return (
         <div className="bg-zinc-900/50 border border-zinc-800/50 rounded-xl overflow-hidden shadow-sm">
-            <div className="p-6 flex flex-col sm:flex-row sm:items-center justify-between border-b border-zinc-800/50 gap-4">
-                <div>
-                    <h2 className="text-sm font-semibold text-white">Active Connections</h2>
-                    <p className="text-xs text-zinc-500 mt-1">Real-time view of sing-box traffic.</p>
-                </div>
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
-                    <div className="flex items-center gap-2 px-3 py-2 sm:py-1.5 rounded-lg bg-zinc-800/50 border border-zinc-700/50 shrink-0">
-                         <span className="relative flex h-2 w-2">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                         </span>
-                         <span className="text-xs font-medium text-zinc-300">{connections.length} Active</span>
-                    </div>
-                </div>
-            </div>
-
             <div className="w-full">
                 {/* Header Columns */}
                 <div className="grid grid-cols-12 gap-4 pb-3 border-b border-zinc-800/50 text-[10px] font-bold text-zinc-500 uppercase tracking-widest px-4 pt-4">
