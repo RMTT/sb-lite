@@ -13,7 +13,8 @@ use tokio::sync::RwLock;
 
 use crate::state::{AppState, PersistedState};
 
-const SING_BOX_BIN: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/sing-box-bin"));
+const SING_BOX_BIN_ZST: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/sing-box-bin.zst"));
+const SING_BOX_BIN_SHA256: &str = include_str!(concat!(env!("OUT_DIR"), "/sing-box-bin.sha256"));
 
 #[derive(Parser, Debug, Clone)]
 #[command(version, about, long_about = None)]
@@ -49,14 +50,16 @@ async fn main() {
     info!("Using state directory at: {:?}", args.state_directory);
 
     let sing_box_path = args.state_directory.join("core");
-    let embedded_hash = compute_sha256(SING_BOX_BIN);
-    info!("Embedded sing-box hash: {}", embedded_hash);
+    info!(
+        "Embedded sing-box (decompressed) hash: {}",
+        SING_BOX_BIN_SHA256
+    );
 
     let mut needs_extraction = true;
     if sing_box_path.exists() {
         if let Ok(existing_bin) = std::fs::read(&sing_box_path) {
             let existing_hash = compute_sha256(&existing_bin);
-            if existing_hash == embedded_hash {
+            if existing_hash == SING_BOX_BIN_SHA256 {
                 info!("Existing core binary matches embedded hash. Skipping extraction.");
                 needs_extraction = false;
             } else {
@@ -66,8 +69,20 @@ async fn main() {
     }
 
     if needs_extraction {
-        info!("Extracting sing-box binary to {:?}", sing_box_path);
-        if let Err(e) = std::fs::write(&sing_box_path, SING_BOX_BIN) {
+        info!("Decompressing sing-box binary...");
+        let decompressed_bin = match zstd::decode_all(SING_BOX_BIN_ZST) {
+            Ok(data) => data,
+            Err(e) => {
+                error!("Failed to decompress embedded sing-box binary: {}", e);
+                std::process::exit(1);
+            }
+        };
+
+        info!(
+            "Extracting decompressed sing-box binary to {:?}",
+            sing_box_path
+        );
+        if let Err(e) = std::fs::write(&sing_box_path, &decompressed_bin) {
             error!(
                 "Failed to write sing-box binary to {:?}: {}",
                 sing_box_path, e
