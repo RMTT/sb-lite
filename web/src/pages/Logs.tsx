@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { Trash2 } from 'lucide-react'
+import { useSingBox } from '../contexts/SingBoxContext'
 
 interface LogEntry {
   timestamp: string;
@@ -11,6 +12,7 @@ interface LogEntry {
 export function Logs() {
   const [level, setLevel] = useState('info')
   const [logs, setLogs] = useState<LogEntry[]>([])
+  const { status } = useSingBox()
   const wsRef = useRef<WebSocket | null>(null)
   const logsEndRef = useRef<HTMLDivElement>(null)
 
@@ -23,6 +25,9 @@ export function Logs() {
   const connectWebSocket = useCallback(() => {
     if (wsRef.current) {
       wsRef.current.close()
+    }
+    if (!status.is_running) {
+      return;
     }
 
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
@@ -70,7 +75,7 @@ export function Logs() {
     }
 
     wsRef.current = ws
-  }, [level])
+  }, [level, status.is_running])
 
   useEffect(() => {
     connectWebSocket()
@@ -79,7 +84,7 @@ export function Logs() {
         wsRef.current.close()
       }
     }
-  }, [connectWebSocket])
+  }, [connectWebSocket, status.is_running])
 
   useEffect(() => {
     if (logsEndRef.current) {
@@ -127,7 +132,11 @@ export function Logs() {
       </div>
 
       <div className="flex-1 bg-[#09090b] border border-zinc-800/50 rounded-xl overflow-y-auto custom-scrollbar font-mono text-sm p-4 text-zinc-300 shadow-inner">
-        {logs.length === 0 ? (
+        {!status.is_running ? (
+          <div className="h-full flex items-center justify-center text-zinc-600 italic">
+            Waiting for core to start...
+          </div>
+        ) : logs.length === 0 ? (
           <div className="h-full flex items-center justify-center text-zinc-600 italic">
             Waiting for logs...
           </div>

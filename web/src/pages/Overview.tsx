@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useSingBox } from '../contexts/SingBoxContext'
 import { Square, Play, Router, Clock, Cpu, Download, Upload, ChevronDown, Activity, Globe, Zap } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -40,11 +41,12 @@ type ProxyNode = {
 }
 
 export function Overview() {
-  const [isRunning, setIsRunning] = useState(false)
-  const [version, setVersion] = useState<string | null>(null)
-  const [autoStart, setAutoStart] = useState(false)
-  const [startTime, setStartTime] = useState<string | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const { status, isLoading, refreshStatus, setAutoStart } = useSingBox()
+  const isRunning = status.is_running
+  const version = status.version
+  const autoStart = status.auto_start
+  const startTime = status.start_time
+
 
   const [downloadTotal, setDownloadTotal] = useState(0)
   const [uploadTotal, setUploadTotal] = useState(0)
@@ -94,25 +96,15 @@ export function Overview() {
     return () => clearInterval(timer)
   }, [startTime])
 
-  const fetchStatus = async () => {
-    try {
-      const res = await fetch('/api/sing-box/status')
-      if (res.ok) {
-        const data = await res.json()
-        setIsRunning(data.is_running)
-        setVersion(data.version)
-        setAutoStart(data.auto_start)
-        setStartTime(data.start_time)
-        setUptimeStr(formatUptime(data.start_time))
-      }
-    } catch {
-      console.error('Failed to fetch status')
-    } finally {
-      setIsLoading(false)
-    }
-  }
+
 
   const fetchConnections = async () => {
+    if (!isRunning) {
+      setDownloadTotal(0);
+      setUploadTotal(0);
+      setMemory(0);
+      return;
+    }
     try {
       const res = await fetch('/api/sing-box/connections')
       if (res.ok) {
@@ -127,6 +119,10 @@ export function Overview() {
   }
 
   const fetchProxies = async () => {
+    if (!isRunning) {
+      setProxies({});
+      return;
+    }
     try {
       const res = await fetch('/api/sing-box/proxies')
       if (res.ok) {
@@ -187,16 +183,15 @@ export function Overview() {
   }
 
   useEffect(() => {
-    fetchStatus()
     fetchConnections()
     fetchProxies()
     const interval = setInterval(() => {
-      fetchStatus()
       fetchConnections()
       fetchProxies()
     }, 2000)
     return () => clearInterval(interval)
-  }, [])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isRunning])
 
   const handleStart = async () => {
     try {
@@ -206,7 +201,7 @@ export function Overview() {
         toast.error(`Failed to start: ${msg}`)
       } else {
         toast.success('Started successfully')
-        fetchStatus()
+        refreshStatus()
       }
     } catch {
       toast.error('Failed to start')
@@ -221,7 +216,7 @@ export function Overview() {
         toast.error(`Failed to stop: ${msg}`)
       } else {
         toast.success('Stopped successfully')
-        fetchStatus()
+        refreshStatus()
       }
     } catch {
       toast.error('Failed to stop')

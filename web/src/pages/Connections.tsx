@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { X, Globe, ArrowRight, Network, Search, FileCode2, MonitorSmartphone, Code } from 'lucide-react'
 import { toast } from 'sonner'
 import { useOutletContext } from 'react-router-dom'
+import { useSingBox } from '../contexts/SingBoxContext'
 import Editor from '@monaco-editor/react'
 
 interface ConnectionMetadata {
@@ -50,11 +51,18 @@ export function Connections() {
     const [isLoading, setIsLoading] = useState(true)
     const [searchQuery, setSearchQuery] = useState('')
     const [selectedConnection, setSelectedConnection] = useState<Connection | null>(null)
+    const { status } = useSingBox()
 
     // Inject header action
     const { setHeaderAction } = useOutletContext<{ setHeaderAction: (node: React.ReactNode) => void }>()
 
     const fetchConnections = async () => {
+        if (!status.is_running) {
+            setConnections([]);
+            setGlobalStats({ downloadTotal: 0, uploadTotal: 0, memory: 0 });
+            setIsLoading(false);
+            return;
+        }
         try {
             const res = await fetch('/api/sing-box/connections')
             if (!res.ok) throw new Error('Failed to fetch connections')
@@ -82,7 +90,8 @@ export function Connections() {
         fetchConnections() // Initial fetch
         const interval = setInterval(fetchConnections, 1000)
         return () => clearInterval(interval)
-    }, [])
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [status.is_running])
 
     useEffect(() => {
         // Set header action to search box
