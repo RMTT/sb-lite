@@ -142,10 +142,10 @@ export function Connections() {
                 <div className="w-full flex-1 flex flex-col">
                     {/* Header Columns */}
                     <div className="grid grid-cols-12 gap-4 pb-3 border-b border-zinc-800/50 text-[10px] font-bold text-zinc-500 uppercase tracking-widest px-4 pt-4 shrink-0">
-                        <div className="col-span-3 lg:col-span-2 pl-12 hidden md:block">Source</div>
-                        <div className="col-span-6 md:col-span-4 lg:col-span-3 pl-12 md:pl-0">Destination</div>
-                        <div className="col-span-2 hidden sm:block">Routing</div>
+                        <div className="col-span-6 md:col-span-4 lg:col-span-3 pl-12">Destination</div>
+                        <div className="col-span-3 lg:col-span-2 hidden md:block pl-10">Source</div>
                         <div className="col-span-2 hidden xl:block">Rule</div>
+                        <div className="col-span-2 hidden sm:block">Routing</div>
                         <div className="col-span-4 sm:col-span-3 lg:col-span-2 text-right">Traffic</div>
                         <div className="col-span-2 sm:col-span-1 text-right">Action</div>
                     </div>
@@ -172,21 +172,9 @@ export function Connections() {
                                         onClick={() => setSelectedConnection(conn)}
                                         className="grid grid-cols-12 gap-4 items-center p-4 hover:bg-zinc-800/20 transition-colors group cursor-pointer"
                                     >
-                                        {/* Source Column */}
-                                        <div className="col-span-3 lg:col-span-2 hidden md:flex items-center gap-4 overflow-hidden">
-                                            <div className="w-10 h-10 rounded-lg bg-zinc-800/50 flex items-center justify-center text-zinc-400 shrink-0">
-                                                <MonitorSmartphone className="w-5 h-5" />
-                                            </div>
-                                            <div className="flex flex-col min-w-0">
-                                                <span className="text-sm font-semibold text-zinc-300 truncate" title={sourceStr}>
-                                                    {sourceStr}
-                                                </span>
-                                            </div>
-                                        </div>
-
                                         {/* Destination Column */}
                                         <div className="col-span-6 md:col-span-4 lg:col-span-3 flex items-center gap-4 overflow-hidden">
-                                            <div className="w-10 h-10 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-400 shrink-0 md:hidden">
+                                            <div className="w-10 h-10 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-400 shrink-0">
                                                 <Globe className="w-5 h-5" />
                                             </div>
                                             <div className="flex flex-col min-w-0">
@@ -202,6 +190,26 @@ export function Connections() {
                                             </div>
                                         </div>
 
+                                        {/* Source Column */}
+                                        <div className="col-span-3 lg:col-span-2 hidden md:flex items-center gap-3 overflow-hidden">
+                                            <div className="w-8 h-8 rounded-md bg-zinc-800/50 flex items-center justify-center text-zinc-400 shrink-0">
+                                                <MonitorSmartphone className="w-4 h-4" />
+                                            </div>
+                                            <div className="flex flex-col min-w-0">
+                                                <span className="text-sm font-medium text-zinc-300 truncate" title={sourceStr}>
+                                                    {sourceStr}
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        {/* Rule Column */}
+                                        <div className="col-span-2 hidden xl:flex items-center gap-1.5 text-xs text-zinc-500 overflow-hidden">
+                                            <FileCode2 className="w-3 h-3 shrink-0" />
+                                            <span className="truncate text-zinc-400" title={conn.rule}>
+                                                {conn.rule || 'None'}
+                                            </span>
+                                        </div>
+
                                         {/* Routing Column */}
                                         <div className="col-span-2 hidden sm:flex items-center gap-3 text-xs text-zinc-500 overflow-hidden">
                                             <div className="flex items-center gap-1.5 min-w-0">
@@ -215,14 +223,6 @@ export function Connections() {
                                                     ))}
                                                 </div>
                                             </div>
-                                        </div>
-
-                                        {/* Rule Column */}
-                                        <div className="col-span-2 hidden xl:flex items-center gap-1.5 text-xs text-zinc-500 overflow-hidden">
-                                            <FileCode2 className="w-3 h-3 shrink-0" />
-                                            <span className="truncate text-zinc-400" title={conn.rule}>
-                                                {conn.rule || 'None'}
-                                            </span>
                                         </div>
 
                                         {/* Traffic Column */}
