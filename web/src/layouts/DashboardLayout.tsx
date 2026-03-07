@@ -9,6 +9,9 @@ export function DashboardLayout() {
   })
   const location = useLocation()
 
+  // State to hold any extra actions a child page wants to inject into the header
+  const [headerAction, setHeaderAction] = useState<React.ReactNode>(null)
+
   useEffect(() => {
     localStorage.setItem('sidebar-collapsed', String(isCollapsed))
   }, [isCollapsed])
@@ -74,14 +77,20 @@ export function DashboardLayout() {
         <header className="sticky top-0 z-10 flex items-center justify-between px-6 py-4 border-b border-zinc-800/50 bg-[#09090b]/80 backdrop-blur-md">
            <div className="flex items-center gap-2">
                <span className="text-base font-semibold text-zinc-100">
-                  {location.pathname === '/' ? 'Dashboard Overview' : location.pathname === '/connections' ? 'Active Connections' : 'Configuration'}
+                  {location.pathname === '/' ? 'Dashboard Overview' : location.pathname === '/connections' ? 'Connections' : 'Configuration'}
                </span>
            </div>
+           {/* Render injected header action if any */}
+           {headerAction && (
+             <div className="flex items-center">
+                 {headerAction}
+             </div>
+           )}
         </header>
 
         {/* Content Container */}
         <div className="w-full mx-auto px-6 py-6 sm:px-8 lg:px-8 space-y-8">
-            <Outlet />
+            <Outlet context={{ setHeaderAction }} />
         </div>
       </main>
     </div>
