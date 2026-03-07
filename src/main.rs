@@ -5,11 +5,15 @@ mod state;
 
 use clap::Parser;
 use log::{error, info};
+use sha2::{Digest, Sha256};
+use std::os::unix::fs::PermissionsExt;
 use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
 use crate::state::{AppState, PersistedState};
+
+const SING_BOX_BIN: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/sing-box-bin"));
 
 #[derive(Parser, Debug, Clone)]
 #[command(version, about, long_about = None)]
@@ -17,12 +21,16 @@ struct Args {
     /// Address to listen on (format: address:port)
     #[arg(short, long, default_value = "127.0.0.1:8180")]
     listen: String,
-    /// Path to the sing-box binary
-    #[arg(long)]
-    sing_box_path: Option<String>,
     /// State directory containing sing-box config and other data
     #[arg(long, default_value = "/var/lib/sing-box-lite")]
     state_directory: PathBuf,
+}
+
+fn compute_sha256(data: &[u8]) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(data);
+    let result = hasher.finalize();
+    format!("{:x}", result)
 }
 
 #[tokio::main]
@@ -30,29 +38,6 @@ async fn main() {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
 
     let args = Args::parse();
-
-    let sing_box_path = match &args.sing_box_path {
-        Some(path) => {
-            let p = PathBuf::from(path);
-            if p.is_file() {
-                p
-            } else {
-                error!("Provided sing-box path is not a valid file: {:?}", p);
-                std::process::exit(1);
-            }
-        }
-        None => match which::which("sing-box") {
-            Ok(path) => path,
-            Err(_) => {
-                error!(
-                    "Could not find `sing-box` binary in PATH. Please install it or provide its location using --sing-box-path."
-                );
-                std::process::exit(1);
-            }
-        },
-    };
-
-    info!("Using sing-box binary at: {:?}", sing_box_path);
 
     if let Err(e) = std::fs::create_dir_all(&args.state_directory) {
         error!(
@@ -62,6 +47,49 @@ async fn main() {
         std::process::exit(1);
     }
     info!("Using state directory at: {:?}", args.state_directory);
+
+    let sing_box_path = args.state_directory.join("core");
+    let embedded_hash = compute_sha256(SING_BOX_BIN);
+    info!("Embedded sing-box hash: {}", embedded_hash);
+
+    let mut needs_extraction = true;
+    if sing_box_path.exists() {
+        if let Ok(existing_bin) = std::fs::read(&sing_box_path) {
+            let existing_hash = compute_sha256(&existing_bin);
+            if existing_hash == embedded_hash {
+                info!("Existing core binary matches embedded hash. Skipping extraction.");
+                needs_extraction = false;
+            } else {
+                info!("Existing core binary hash mismatch. Will overwrite.");
+            }
+        }
+    }
+
+    if needs_extraction {
+        info!("Extracting sing-box binary to {:?}", sing_box_path);
+        if let Err(e) = std::fs::write(&sing_box_path, SING_BOX_BIN) {
+            error!(
+                "Failed to write sing-box binary to {:?}: {}",
+                sing_box_path, e
+            );
+            std::process::exit(1);
+        }
+
+        #[cfg(unix)]
+        {
+            if let Ok(mut perms) = std::fs::metadata(&sing_box_path).map(|m| m.permissions()) {
+                perms.set_mode(0o755);
+                if let Err(e) = std::fs::set_permissions(&sing_box_path, perms) {
+                    error!(
+                        "Failed to set executable permissions on {:?}: {}",
+                        sing_box_path, e
+                    );
+                }
+            }
+        }
+    }
+
+    info!("Using sing-box binary at: {:?}", sing_box_path);
 
     let state_file_path = args.state_directory.join("state");
     let persisted_state = match std::fs::read(&state_file_path) {
