@@ -3,7 +3,6 @@ use std::env;
 use std::fs;
 use std::io::{Read, Write};
 use std::path::PathBuf;
-use std::process::Command;
 
 const CORE_VERSION: &'static str = "1.12.24";
 
@@ -156,25 +155,4 @@ fn main() {
     println!("cargo:rerun-if-changed=build.rs");
 
     download_and_extract_sing_box();
-
-    let npm_install = Command::new("npm")
-        .current_dir("web")
-        .arg("install")
-        .status()
-        .expect("Failed to execute npm install");
-
-    if !npm_install.success() {
-        panic!("npm install failed");
-    }
-
-    let npm_build = Command::new("npm")
-        .current_dir("web")
-        .arg("run")
-        .arg("build")
-        .status()
-        .expect("Failed to execute npm run build");
-
-    if !npm_build.success() {
-        panic!("npm run build failed");
-    }
 }
