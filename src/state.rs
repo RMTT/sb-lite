@@ -166,7 +166,7 @@ impl AppState {
         let mut process_lock = self.sing_box_process.lock().await;
 
         let is_running = if let Some(child) = process_lock.as_mut() {
-            child.try_wait().map_or(false, |status| status.is_none())
+            child.try_wait().is_ok_and(|status| status.is_none())
         } else {
             false
         };
@@ -190,11 +190,31 @@ impl AppState {
             .arg(&tmp_path)
             .arg("-D")
             .arg(&self.state_directory)
-            .stdout(std::process::Stdio::null())
-            .stderr(std::process::Stdio::null())
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::piped())
             .spawn()
         {
-            Ok(child) => {
+            Ok(mut child) => {
+                if let Some(stdout) = child.stdout.take() {
+                    tokio::spawn(async move {
+                        use tokio::io::{AsyncBufReadExt, BufReader};
+                        let mut reader = BufReader::new(stdout).lines();
+                        while let Ok(Some(line)) = reader.next_line().await {
+                            log::info!("{}", line);
+                        }
+                    });
+                }
+
+                if let Some(stderr) = child.stderr.take() {
+                    tokio::spawn(async move {
+                        use tokio::io::{AsyncBufReadExt, BufReader};
+                        let mut reader = BufReader::new(stderr).lines();
+                        while let Ok(Some(line)) = reader.next_line().await {
+                            log::error!("{}", line);
+                        }
+                    });
+                }
+
                 *process_lock = Some(child);
                 let mut start_time_lock = self.start_time.lock().await;
                 *start_time_lock = Some(chrono::Utc::now());

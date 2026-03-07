@@ -156,8 +156,8 @@ pub async fn delete_config_handler(
             info!("Config file deleted at {:?}", config_path);
 
             // If the deleted config was active, optionally clear active config state
-            if let Some(active) = state.get_active_config().await {
-                if active == safe_name {
+            if let Some(active) = state.get_active_config().await
+                && active == safe_name {
                     let _ = state.set_active_config("".to_string()).await;
                     if let Err(e) = crate::merge::generate_and_write_active_config(&state).await {
                         error!(
@@ -166,7 +166,6 @@ pub async fn delete_config_handler(
                         );
                     }
                 }
-            }
 
             (StatusCode::OK, "Config deleted").into_response()
         }
@@ -201,17 +200,15 @@ pub async fn update_config_handler(
 
             // If the updated config is the active one, regenerate the merged config
 
-            if let Some(active) = state.get_active_config().await {
-                if active == safe_name {
-                    if let Err(e) = crate::merge::generate_and_write_active_config(&state).await {
+            if let Some(active) = state.get_active_config().await
+                && active == safe_name
+                    && let Err(e) = crate::merge::generate_and_write_active_config(&state).await {
                         error!(
                             "Failed to generate and write active config after update: {}",
                             e
                         );
                         return (StatusCode::BAD_REQUEST, e).into_response();
                     }
-                }
-            }
 
             (StatusCode::OK, "Config updated").into_response()
         }
@@ -257,7 +254,7 @@ pub async fn apply_config_handler(
     };
 
     let config_path = state.state_directory.join(&safe_name);
-    if let Err(_) = tokio::fs::metadata(&config_path).await {
+    if tokio::fs::metadata(&config_path).await.is_err() {
         return (StatusCode::NOT_FOUND, "Config file not found").into_response();
     }
 
@@ -279,21 +276,20 @@ pub async fn apply_config_handler(
     let is_running = {
         let mut process_lock = state.sing_box_process.lock().await;
         if let Some(child) = process_lock.as_mut() {
-            child.try_wait().map_or(false, |status| status.is_none())
+            child.try_wait().is_ok_and(|status| status.is_none())
         } else {
             false
         }
     };
 
-    if !is_running {
-        if let Err(e) = state.restart_sing_box(false).await {
+    if !is_running
+        && let Err(e) = state.restart_sing_box(false).await {
             return (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 format!("Config applied but failed to start sing-box: {}", e),
             )
                 .into_response();
         }
-    }
 
     (StatusCode::OK, "Config applied successfully").into_response()
 }
@@ -302,8 +298,8 @@ pub async fn get_merged_config_handler(State(state): State<AppState>) -> Respons
     let tmp_path = std::path::PathBuf::from("/tmp/sblite-active.json");
     let mut read_result = tokio::fs::read_to_string(&tmp_path).await;
 
-    if let Err(e) = &read_result {
-        if e.kind() == std::io::ErrorKind::NotFound {
+    if let Err(e) = &read_result
+        && e.kind() == std::io::ErrorKind::NotFound {
             if let Err(gen_err) = crate::merge::generate_and_write_active_config(&state).await {
                 error!("Failed to generate merged config: {}", gen_err);
                 return (
@@ -315,7 +311,6 @@ pub async fn get_merged_config_handler(State(state): State<AppState>) -> Respons
             // Try reading again
             read_result = tokio::fs::read_to_string(&tmp_path).await;
         }
-    }
 
     match read_result {
         Ok(content) => (
@@ -381,8 +376,8 @@ pub async fn validate_subscription_handler(
     match client.get(&payload.url).send().await {
         Ok(resp) => {
             let status = resp.status();
-            if status.is_success() {
-                if let Ok(text) = resp.text().await {
+            if status.is_success()
+                && let Ok(text) = resp.text().await {
                     // Try to parse it to ensure it's valid SIP008
                     match serde_json::from_str::<Sip008Data>(&text) {
                         Ok(_data) => {
@@ -406,7 +401,6 @@ pub async fn validate_subscription_handler(
                         }
                     }
                 }
-            }
             (
                 StatusCode::BAD_GATEWAY,
                 format!("Failed to fetch subscription: HTTP {}", status),
@@ -439,8 +433,8 @@ pub async fn update_subscription_handler(
     match client.get(url).send().await {
         Ok(resp) => {
             let status = resp.status();
-            if status.is_success() {
-                if let Ok(text) = resp.text().await {
+            if status.is_success()
+                && let Ok(text) = resp.text().await {
                     match serde_json::from_str::<Sip008Data>(&text) {
                         Ok(_) => {
                             if let Err(e) = state
@@ -475,7 +469,6 @@ pub async fn update_subscription_handler(
                         }
                     }
                 }
-            }
             (
                 StatusCode::BAD_GATEWAY,
                 format!("Failed to fetch subscription: HTTP {}", status),
@@ -507,12 +500,12 @@ pub async fn get_sing_box_status_handler(State(state): State<AppState>) -> Respo
         Ok(output) if output.status.success() => {
             let output_str = String::from_utf8_lossy(&output.stdout);
             // Parse version. e.g. "sing-box version 1.8.0-rc.1"
-            let parsed_version = output_str
+
+            output_str
                 .lines()
                 .next()
                 .and_then(|line| line.strip_prefix("sing-box version "))
-                .map(|s| s.to_string());
-            parsed_version
+                .map(|s| s.to_string())
         }
         _ => None,
     };
@@ -606,8 +599,8 @@ pub async fn get_connections_handler(State(state): State<AppState>) -> Response 
     match client.get(&url).send().await {
         Ok(resp) => {
             let status = resp.status();
-            if status.is_success() {
-                if let Ok(text) = resp.text().await {
+            if status.is_success()
+                && let Ok(text) = resp.text().await {
                     return (
                         StatusCode::OK,
                         [(axum::http::header::CONTENT_TYPE, "application/json")],
@@ -615,7 +608,6 @@ pub async fn get_connections_handler(State(state): State<AppState>) -> Response 
                     )
                         .into_response();
                 }
-            }
             (
                 StatusCode::BAD_GATEWAY,
                 format!("Failed to fetch connections: HTTP {}", status),
@@ -641,8 +633,8 @@ pub async fn get_proxies_handler(State(state): State<AppState>) -> Response {
     match client.get(&url).send().await {
         Ok(resp) => {
             let status = resp.status();
-            if status.is_success() {
-                if let Ok(text) = resp.text().await {
+            if status.is_success()
+                && let Ok(text) = resp.text().await {
                     return (
                         StatusCode::OK,
                         [(axum::http::header::CONTENT_TYPE, "application/json")],
@@ -650,7 +642,6 @@ pub async fn get_proxies_handler(State(state): State<AppState>) -> Response {
                     )
                         .into_response();
                 }
-            }
             (
                 StatusCode::BAD_GATEWAY,
                 format!("Failed to fetch proxies: HTTP {}", status),
@@ -840,17 +831,17 @@ async fn handle_logs_socket(mut socket: WebSocket, state: AppState, level: Strin
                             }
                         }
                         Ok(TungsteniteMessage::Binary(b)) => {
-                            if client_tx.send(Message::Binary(b.into())).await.is_err() {
+                            if client_tx.send(Message::Binary(b)).await.is_err() {
                                 break;
                             }
                         }
                         Ok(TungsteniteMessage::Ping(p)) => {
-                            if client_tx.send(Message::Ping(p.into())).await.is_err() {
+                            if client_tx.send(Message::Ping(p)).await.is_err() {
                                 break;
                             }
                         }
                         Ok(TungsteniteMessage::Pong(p)) => {
-                            if client_tx.send(Message::Pong(p.into())).await.is_err() {
+                            if client_tx.send(Message::Pong(p)).await.is_err() {
                                 break;
                             }
                         }
@@ -885,13 +876,13 @@ async fn handle_logs_socket(mut socket: WebSocket, state: AppState, level: Strin
                                 .await;
                         }
                         Ok(Message::Binary(b)) => {
-                            let _ = singbox_tx.send(TungsteniteMessage::Binary(b.into())).await;
+                            let _ = singbox_tx.send(TungsteniteMessage::Binary(b)).await;
                         }
                         Ok(Message::Ping(p)) => {
-                            let _ = singbox_tx.send(TungsteniteMessage::Ping(p.into())).await;
+                            let _ = singbox_tx.send(TungsteniteMessage::Ping(p)).await;
                         }
                         Ok(Message::Pong(p)) => {
-                            let _ = singbox_tx.send(TungsteniteMessage::Pong(p.into())).await;
+                            let _ = singbox_tx.send(TungsteniteMessage::Pong(p)).await;
                         }
                         Ok(Message::Close(_)) => {
                             let _ = singbox_tx.send(TungsteniteMessage::Close(None)).await;

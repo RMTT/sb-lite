@@ -42,20 +42,19 @@ pub async fn generate_and_write_active_config(state: &AppState) -> Result<(), St
 
     // Process subscriptions
     for sub in subs {
-        if let Some(raw) = sub.raw_data {
-            if let Ok(sip_data) = serde_json::from_str::<Sip008Data>(&raw) {
-                if let Some(servers) = sip_data.servers {
+        if let Some(raw) = sub.raw_data
+            && let Ok(sip_data) = serde_json::from_str::<Sip008Data>(&raw)
+                && let Some(servers) = sip_data.servers {
                     for server in servers {
                         let mut tag = server
                             .remarks
                             .clone()
                             .unwrap_or_else(|| server.server.clone());
 
-                        if let Some(prefix) = &sub.prefix {
-                            if !prefix.is_empty() {
+                        if let Some(prefix) = &sub.prefix
+                            && !prefix.is_empty() {
                                 tag = format!("{}{}", prefix, tag);
                             }
-                        }
 
                         let mut outbound = json!({
                             "type": "shadowsocks",
@@ -80,8 +79,6 @@ pub async fn generate_and_write_active_config(state: &AppState) -> Result<(), St
                         all_tags.push(tag);
                     }
                 }
-            }
-        }
     }
 
     // Process Selectors
