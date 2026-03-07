@@ -43,7 +43,7 @@ jobs:
           targets: ${{ matrix.target }}
 
       - name: Install cross
-        run: cargo install cross --git https://github.com/cross-rs/cross --rev 3a131b012b18400037a6b328a8d11d198f6d8377
+        run: cargo install cross --git https://github.com/cross-rs/cross
 
       - name: Build backend
         run: cross build --release --target ${{ matrix.target }}
