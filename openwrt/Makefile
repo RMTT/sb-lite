@@ -22,6 +22,8 @@ endef
 
 define Build/Prepare
 	mkdir -p $(PKG_BUILD_DIR)
+	# Copy the pre-built binary from the GitHub Actions workspace into the build directory
+	cp $(GITHUB_WORKSPACE)/sblite-bin $(PKG_BUILD_DIR)/sblite
 endef
 
 define Build/Compile
