@@ -1692,8 +1692,8 @@ dependencies = [
  "tar",
  "tokio",
  "tokio-tungstenite",
+ "xz2",
  "zip",
- "zstd",
 ]
 
 [[package]]

@@ -52,7 +52,7 @@ fn download_and_extract_sing_box() {
         "sing-box"
     };
     let dest_bin_path = out_path.join("sing-box-bin");
-    let dest_zst_path = out_path.join("sing-box-bin.zst");
+    let dest_zst_path = out_path.join("sing-box-bin.xz");
 
     // Don't redownload if we already extracted it successfully
     if dest_zst_path.exists() {
@@ -132,7 +132,12 @@ fn download_and_extract_sing_box() {
     file.read_to_end(&mut data)
         .expect("Failed to read extracted binary");
 
-    let compressed = zstd::encode_all(&*data, 22).expect("Failed to compress binary");
+    let mut compressed = Vec::new();
+    {
+        let mut encoder = xz2::write::XzEncoder::new(&mut compressed, 9);
+        encoder.write_all(&data).expect("Failed to compress binary");
+        encoder.finish().expect("Failed to finish compression");
+    }
     let mut zst_file = fs::File::create(&dest_zst_path).expect("Failed to create zst file");
     zst_file
         .write_all(&compressed)

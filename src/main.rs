@@ -6,6 +6,7 @@ mod state;
 use clap::Parser;
 use log::{error, info};
 use sha2::{Digest, Sha256};
+use std::io::Read;
 use std::os::unix::fs::PermissionsExt;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -13,7 +14,7 @@ use tokio::sync::RwLock;
 
 use crate::state::{AppState, PersistedState};
 
-const SING_BOX_BIN_ZST: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/sing-box-bin.zst"));
+const SING_BOX_BIN_XZ: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/sing-box-bin.xz"));
 const SING_BOX_BIN_SHA256: &str = include_str!(concat!(env!("OUT_DIR"), "/sing-box-bin.sha256"));
 
 #[derive(Parser, Debug, Clone)]
@@ -70,7 +71,11 @@ async fn main() {
 
     if needs_extraction {
         info!("Decompressing sing-box binary...");
-        let decompressed_bin = match zstd::decode_all(SING_BOX_BIN_ZST) {
+        let decompressed_bin = match {
+            let mut dec = xz2::read::XzDecoder::new(SING_BOX_BIN_XZ);
+            let mut data = Vec::new();
+            dec.read_to_end(&mut data).map(|_| data)
+        } {
             Ok(data) => data,
             Err(e) => {
                 error!("Failed to decompress embedded sing-box binary: {}", e);
