@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useSingBox } from '../contexts/SingBoxContext'
+import { useCore } from '../contexts/CoreContext'
 import { Square, Play, Router, Clock, Cpu, Download, Upload, ChevronDown, Activity, Globe, Zap } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -41,7 +41,7 @@ type ProxyNode = {
 }
 
 export function Overview() {
-  const { status, isLoading, refreshStatus, setAutoStart } = useSingBox()
+  const { status, isLoading, refreshStatus, setAutoStart } = useCore()
   const isRunning = status.is_running
   const version = status.version
   const autoStart = status.auto_start

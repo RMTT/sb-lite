@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { Trash2 } from 'lucide-react'
-import { useSingBox } from '../contexts/SingBoxContext'
+import { useCore } from '../contexts/CoreContext'
 
 interface LogEntry {
   timestamp: string;
@@ -12,7 +12,7 @@ interface LogEntry {
 export function Logs() {
   const [level, setLevel] = useState('info')
   const [logs, setLogs] = useState<LogEntry[]>([])
-  const { status } = useSingBox()
+  const { status } = useCore()
   const wsRef = useRef<WebSocket | null>(null)
   const logsEndRef = useRef<HTMLDivElement>(null)
 

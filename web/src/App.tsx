@@ -5,12 +5,12 @@ import { Overview } from './pages/Overview'
 import { Config } from './pages/Config'
 import { Connections } from './pages/Connections'
 import { Logs } from './pages/Logs'
-import { SingBoxProvider } from './contexts/SingBoxContext'
+import { CoreProvider } from './contexts/CoreContext'
 import './App.css'
 
 function App() {
   return (
-    <SingBoxProvider>
+    <CoreProvider>
       <BrowserRouter>
         <Toaster
           position="top-center"
@@ -28,7 +28,7 @@ function App() {
           </Route>
         </Routes>
       </BrowserRouter>
-    </SingBoxProvider>
+    </CoreProvider>
   )
 }
 

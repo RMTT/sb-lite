@@ -9,7 +9,7 @@ interface CoreStatus {
   start_time: string | null
 }
 
-interface SingBoxContextType {
+interface CoreContextType {
   status: CoreStatus
   isLoading: boolean
   refreshStatus: () => Promise<void>
@@ -23,9 +23,9 @@ const defaultStatus: CoreStatus = {
   start_time: null
 }
 
-const SingBoxContext = createContext<SingBoxContextType | undefined>(undefined)
+const CoreContext = createContext<CoreContextType | undefined>(undefined)
 
-export function SingBoxProvider({ children }: { children: ReactNode }) {
+export function CoreProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<CoreStatus>(defaultStatus)
   const [isLoading, setIsLoading] = useState(true)
 
@@ -60,16 +60,16 @@ export function SingBoxProvider({ children }: { children: ReactNode }) {
   }, [])
 
   return (
-    <SingBoxContext.Provider value={{ status, isLoading, refreshStatus: fetchStatus, setAutoStart }}>
+    <CoreContext.Provider value={{ status, isLoading, refreshStatus: fetchStatus, setAutoStart }}>
       {children}
-    </SingBoxContext.Provider>
+    </CoreContext.Provider>
   )
 }
 
-export function useSingBox() {
-  const context = useContext(SingBoxContext)
+export function useCore() {
+  const context = useContext(CoreContext)
   if (context === undefined) {
-    throw new Error('useSingBox must be used within a SingBoxProvider')
+    throw new Error('useCore must be used within a CoreProvider')
   }
   return context
 }

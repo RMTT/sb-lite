@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { X, Globe, ArrowRight, Network, Search, FileCode2, MonitorSmartphone, Code } from 'lucide-react'
 import { toast } from 'sonner'
 import { useOutletContext } from 'react-router-dom'
-import { useSingBox } from '../contexts/SingBoxContext'
+import { useCore } from '../contexts/CoreContext'
 import Editor from '@monaco-editor/react'
 
 interface ConnectionMetadata {
@@ -51,7 +51,7 @@ export function Connections() {
     const [isLoading, setIsLoading] = useState(true)
     const [searchQuery, setSearchQuery] = useState('')
     const [selectedConnection, setSelectedConnection] = useState<Connection | null>(null)
-    const { status } = useSingBox()
+    const { status } = useCore()
 
     // Inject header action
     const { setHeaderAction } = useOutletContext<{ setHeaderAction: (node: React.ReactNode) => void }>()
