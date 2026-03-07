@@ -50,6 +50,16 @@ export function DashboardLayout() {
           </NavLink>
 
           <NavLink
+            to="/config"
+            className={({ isActive }) => `flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+              isActive ? 'bg-zinc-800 text-white' : 'text-zinc-400 hover:bg-zinc-900/50 hover:text-zinc-100'
+            }`}
+          >
+            <Settings className="w-5 h-5 shrink-0" strokeWidth={2} />
+            <span className={`text-sm font-medium whitespace-nowrap transition-all duration-300 ${isCollapsed ? 'opacity-0 w-0 hidden' : 'opacity-100 w-auto'}`}>Config</span>
+          </NavLink>
+
+          <NavLink
             to="/connections"
             className={({ isActive }) => `flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
               isActive ? 'bg-zinc-800 text-white' : 'text-zinc-400 hover:bg-zinc-900/50 hover:text-zinc-100'
@@ -67,16 +77,6 @@ export function DashboardLayout() {
           >
             <FileText className="w-5 h-5 shrink-0" strokeWidth={2} />
             <span className={`text-sm font-medium whitespace-nowrap transition-all duration-300 ${isCollapsed ? 'opacity-0 w-0 hidden' : 'opacity-100 w-auto'}`}>Logs</span>
-          </NavLink>
-
-          <NavLink
-            to="/config"
-            className={({ isActive }) => `flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
-              isActive ? 'bg-zinc-800 text-white' : 'text-zinc-400 hover:bg-zinc-900/50 hover:text-zinc-100'
-            }`}
-          >
-            <Settings className="w-5 h-5 shrink-0" strokeWidth={2} />
-            <span className={`text-sm font-medium whitespace-nowrap transition-all duration-300 ${isCollapsed ? 'opacity-0 w-0 hidden' : 'opacity-100 w-auto'}`}>Config</span>
           </NavLink>
         </nav>
       </aside>
