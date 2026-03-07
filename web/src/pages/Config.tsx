@@ -1,6 +1,8 @@
 import { Upload, Plus, FileText, Play, Edit2, Trash2, GitMerge, Link, RefreshCw, X, Code, Wand2 } from 'lucide-react'
 import { useState, useEffect, useRef } from 'react'
-import Editor from '@monaco-editor/react'
+import CodeMirror from '@uiw/react-codemirror'
+import { json } from '@codemirror/lang-json'
+import { oneDark } from '@codemirror/theme-one-dark'
 import { toast } from 'sonner'
 
 interface ConfigsResponse {
@@ -101,7 +103,7 @@ export function Config() {
   }, [])
 
 
-  const handleEditorChange = (value: string | undefined) => {
+  const handleEditorChange = (value: string) => {
     if (value !== undefined) {
       setConfigContent(value)
     }
@@ -1017,19 +1019,20 @@ export function Config() {
                       </button>
                   </div>
 
-                  <div className="flex-1 relative bg-[#1e1e1e]">
-                      <Editor
-                          height="100%"
-                          defaultLanguage="json"
-                          theme="vs-dark"
+                  <div className="flex-1 min-h-0 relative bg-[#1e1e1e] overflow-hidden">
+                      <CodeMirror
                           value={mergedConfigContent}
-                          options={{
-                              minimap: { enabled: false },
-                              fontSize: 14,
-                              wordWrap: 'on',
-                              scrollBeyondLastLine: false,
-                              padding: { top: 24, bottom: 24 },
-                              readOnly: true,
+                          height="100%"
+                          theme={oneDark}
+                          extensions={[json()]}
+                          editable={false}
+                          className="h-full w-full"
+                          basicSetup={{
+                            lineNumbers: true,
+                            foldGutter: true,
+                            highlightActiveLine: false,
+                            highlightSelectionMatches: true,
+                            bracketMatching: true,
                           }}
                       />
                   </div>
@@ -1088,21 +1091,20 @@ export function Config() {
                       </div>
                   </div>
 
-                  <div className="flex-1 relative bg-[#1e1e1e]">
-                      <Editor
-                          height="100%"
-                          defaultLanguage="json"
-                          theme="vs-dark"
+                  <div className="flex-1 min-h-0 relative bg-[#1e1e1e] overflow-hidden">
+                      <CodeMirror
                           value={configContent}
-                          onChange={handleEditorChange}
-                          options={{
-                              minimap: { enabled: false },
-                              fontSize: 14,
-                              wordWrap: 'on',
-                              scrollBeyondLastLine: false,
-                              padding: { top: 24, bottom: 24 },
-                              formatOnPaste: true,
-                              formatOnType: true,
+                          height="100%"
+                          theme={oneDark}
+                          extensions={[json()]}
+                          onChange={(val) => handleEditorChange(val)}
+                          className="h-full w-full"
+                          basicSetup={{
+                            lineNumbers: true,
+                            foldGutter: true,
+                            highlightActiveLine: true,
+                            highlightSelectionMatches: true,
+                            bracketMatching: true,
                           }}
                       />
                   </div>
