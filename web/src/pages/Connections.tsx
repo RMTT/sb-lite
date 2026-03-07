@@ -119,21 +119,26 @@ export function Connections() {
     }
 
     const filteredConnections = connections.filter(conn => {
-        const query = searchQuery.toLowerCase()
+        const query = searchQuery.trim().toLowerCase()
         if (!query) return true
+
+        const keywords = query.split(/\s+/)
 
         const targetHost = conn.metadata.host || conn.metadata.destinationIP
         const targetStr = `${targetHost}:${conn.metadata.destinationPort}`
         const sourceStr = `${conn.metadata.sourceIP}:${conn.metadata.sourcePort}`
 
-        return (
-            targetStr.toLowerCase().includes(query) ||
-            sourceStr.toLowerCase().includes(query) ||
-            conn.metadata.network.toLowerCase().includes(query) ||
-            conn.chains.join(' ').toLowerCase().includes(query) ||
-            conn.metadata.type.toLowerCase().includes(query) ||
-            conn.rule.toLowerCase().includes(query)
-        )
+        // Check if the connection matches all keywords
+        return keywords.every(keyword => {
+            return (
+                targetStr.toLowerCase().includes(keyword) ||
+                sourceStr.toLowerCase().includes(keyword) ||
+                conn.metadata.network.toLowerCase().includes(keyword) ||
+                conn.chains.join(' ').toLowerCase().includes(keyword) ||
+                conn.metadata.type.toLowerCase().includes(keyword) ||
+                conn.rule.toLowerCase().includes(keyword)
+            )
+        })
     })
 
     return (
