@@ -44,41 +44,42 @@ pub async fn generate_and_write_active_config(state: &AppState) -> Result<(), St
     for sub in subs {
         if let Some(raw) = sub.raw_data
             && let Ok(sip_data) = serde_json::from_str::<Sip008Data>(&raw)
-                && let Some(servers) = sip_data.servers {
-                    for server in servers {
-                        let mut tag = server
-                            .remarks
-                            .clone()
-                            .unwrap_or_else(|| server.server.clone());
+            && let Some(servers) = sip_data.servers
+        {
+            for server in servers {
+                let mut tag = server
+                    .remarks
+                    .clone()
+                    .unwrap_or_else(|| server.server.clone());
 
-                        if let Some(prefix) = &sub.prefix
-                            && !prefix.is_empty() {
-                                tag = format!("{}{}", prefix, tag);
-                            }
-
-                        let mut outbound = json!({
-                            "type": "shadowsocks",
-                            "tag": tag.clone(),
-                            "server": server.server,
-                            "server_port": server.server_port,
-                            "method": server.method,
-                            "plugin": server.plugin.unwrap_or_else(|| "".to_string()),
-                            "plugin_opts": server.plugin_opts.unwrap_or_else(|| "".to_string())
-                        });
-
-                        if let Some(password) = server.password {
-                            outbound["password"] = serde_json::Value::String(password);
-                        }
-
-                        if let Some(routing_mark) = &sub.routing_mark {
-                            outbound["routing_mark"] =
-                                serde_json::Value::String(routing_mark.clone());
-                        }
-
-                        new_outbounds.push(outbound);
-                        all_tags.push(tag);
-                    }
+                if let Some(prefix) = &sub.prefix
+                    && !prefix.is_empty()
+                {
+                    tag = format!("{}{}", prefix, tag);
                 }
+
+                let mut outbound = json!({
+                    "type": "shadowsocks",
+                    "tag": tag.clone(),
+                    "server": server.server,
+                    "server_port": server.server_port,
+                    "method": server.method,
+                    "plugin": server.plugin.unwrap_or_else(|| "".to_string()),
+                    "plugin_opts": server.plugin_opts.unwrap_or_else(|| "".to_string())
+                });
+
+                if let Some(password) = server.password {
+                    outbound["password"] = serde_json::Value::String(password);
+                }
+
+                if let Some(routing_mark) = &sub.routing_mark {
+                    outbound["routing_mark"] = serde_json::Value::String(routing_mark.clone());
+                }
+
+                new_outbounds.push(outbound);
+                all_tags.push(tag);
+            }
+        }
     }
 
     // Process Selectors

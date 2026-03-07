@@ -57,15 +57,16 @@ async fn main() {
 
     let mut needs_extraction = true;
     if sing_box_path.exists()
-        && let Ok(existing_bin) = std::fs::read(&sing_box_path) {
-            let existing_hash = compute_sha256(&existing_bin);
-            if existing_hash == SING_BOX_BIN_SHA256 {
-                info!("Existing core binary matches embedded hash. Skipping extraction.");
-                needs_extraction = false;
-            } else {
-                info!("Existing core binary hash mismatch. Will overwrite.");
-            }
+        && let Ok(existing_bin) = std::fs::read(&sing_box_path)
+    {
+        let existing_hash = compute_sha256(&existing_bin);
+        if existing_hash == SING_BOX_BIN_SHA256 {
+            info!("Existing core binary matches embedded hash. Skipping extraction.");
+            needs_extraction = false;
+        } else {
+            info!("Existing core binary hash mismatch. Will overwrite.");
         }
+    }
 
     if needs_extraction {
         info!("Decompressing sing-box binary...");
@@ -131,75 +132,8 @@ async fn main() {
     if persisted_state.auto_start {
         info!("Auto-start is enabled. Attempting to start sing-box...");
 
-        // Ensure merged config exists
-        match crate::merge::generate_and_write_active_config(&shared_state).await {
-            Ok(_) => {
-                let tmp_path = std::path::PathBuf::from("/tmp/sblite-active.json");
-
-                match tokio::process::Command::new(&shared_state.sing_box_path)
-                    .arg("check")
-                    .arg("-c")
-                    .arg(&tmp_path)
-                    .output()
-                    .await
-                {
-                    Ok(output) if output.status.success() => {
-                        match tokio::process::Command::new(&shared_state.sing_box_path)
-                            .arg("run")
-                            .arg("-c")
-                            .arg(&tmp_path)
-                            .arg("-D")
-                            .arg(&shared_state.state_directory)
-                            .stdout(std::process::Stdio::piped())
-                            .stderr(std::process::Stdio::piped())
-                            .spawn()
-                        {
-                            Ok(mut child) => {
-                                if let Some(stdout) = child.stdout.take() {
-                                    tokio::spawn(async move {
-                                        use tokio::io::{AsyncBufReadExt, BufReader};
-                                        let mut reader = BufReader::new(stdout).lines();
-                                        while let Ok(Some(line)) = reader.next_line().await {
-                                            info!("{}", line);
-                                        }
-                                    });
-                                }
-
-                                if let Some(stderr) = child.stderr.take() {
-                                    tokio::spawn(async move {
-                                        use tokio::io::{AsyncBufReadExt, BufReader};
-                                        let mut reader = BufReader::new(stderr).lines();
-                                        while let Ok(Some(line)) = reader.next_line().await {
-                                            error!("{}", line);
-                                        }
-                                    });
-                                }
-
-                                let mut process_lock = shared_state.sing_box_process.lock().await;
-                                *process_lock = Some(child);
-                                let mut start_time_lock = shared_state.start_time.lock().await;
-                                *start_time_lock = Some(chrono::Utc::now());
-                                info!("sing-box auto-started successfully on boot.");
-                            }
-                            Err(e) => {
-                                error!("Failed to auto-start sing-box: {}", e);
-                            }
-                        }
-                    }
-                    Ok(output) => {
-                        error!(
-                            "Config check failed on auto-start: {}",
-                            String::from_utf8_lossy(&output.stderr)
-                        );
-                    }
-                    Err(e) => {
-                        error!("Failed to run config check on auto-start: {}", e);
-                    }
-                }
-            }
-            Err(e) => {
-                error!("Failed to generate active config on auto-start: {}", e);
-            }
+        if let Err(e) = shared_state.start_sing_box(false).await {
+            error!("Failed to auto-start sing-box: {}", e);
         }
     }
 
