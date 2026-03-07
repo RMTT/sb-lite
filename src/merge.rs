@@ -71,6 +71,11 @@ pub async fn generate_and_write_active_config(state: &AppState) -> Result<(), St
                             outbound["password"] = serde_json::Value::String(password);
                         }
 
+                        if let Some(routing_mark) = &sub.routing_mark {
+                            outbound["routing_mark"] =
+                                serde_json::Value::String(routing_mark.clone());
+                        }
+
                         new_outbounds.push(outbound);
                         all_tags.push(tag);
                     }
