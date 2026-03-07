@@ -87,7 +87,7 @@ export function DashboardLayout() {
         <header className="sticky top-0 z-10 flex items-center justify-between px-6 py-4 border-b border-zinc-800/50 bg-[#09090b]/80 backdrop-blur-md">
            <div className="flex items-center gap-2">
                <span className="text-base font-semibold text-zinc-100">
-                  {location.pathname === '/' ? 'Dashboard Overview' : location.pathname === '/connections' ? 'Connections' : location.pathname === '/logs' ? 'Logs' : 'Configuration'}
+                  {location.pathname === '/' ? 'Overview' : location.pathname === '/connections' ? 'Connections' : location.pathname === '/logs' ? 'Logs' : 'Configuration'}
                </span>
            </div>
            {/* Render injected header action if any */}

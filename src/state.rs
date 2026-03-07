@@ -210,7 +210,7 @@ impl AppState {
                         use tokio::io::{AsyncBufReadExt, BufReader};
                         let mut reader = BufReader::new(stderr).lines();
                         while let Ok(Some(line)) = reader.next_line().await {
-                            log::error!("{}", line);
+                            log::warn!("{}", line);
                         }
                     });
                 }
