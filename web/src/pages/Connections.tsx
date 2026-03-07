@@ -3,7 +3,9 @@ import { X, Globe, ArrowRight, Network, Search, FileCode2, MonitorSmartphone, Co
 import { toast } from 'sonner'
 import { useOutletContext } from 'react-router-dom'
 import { useCore } from '../contexts/CoreContext'
-import Editor from '@monaco-editor/react'
+import CodeMirror from '@uiw/react-codemirror'
+import { json } from '@codemirror/lang-json'
+import { oneDark } from '@codemirror/theme-one-dark'
 
 interface ConnectionMetadata {
     destinationIP: string
@@ -292,18 +294,19 @@ export function Connections() {
                         </div>
 
                         <div className="flex-1 relative bg-[#1e1e1e]">
-                            <Editor
-                                height="100%"
-                                defaultLanguage="json"
-                                theme="vs-dark"
+                            <CodeMirror
                                 value={JSON.stringify(selectedConnection, null, 2)}
-                                options={{
-                                    minimap: { enabled: false },
-                                    fontSize: 14,
-                                    wordWrap: 'on',
-                                    scrollBeyondLastLine: false,
-                                    padding: { top: 24, bottom: 24 },
-                                    readOnly: true,
+                                height="100%"
+                                theme={oneDark}
+                                extensions={[json()]}
+                                editable={false}
+                                className="h-full w-full"
+                                basicSetup={{
+                                  lineNumbers: true,
+                                  foldGutter: true,
+                                  highlightActiveLine: false,
+                                  highlightSelectionMatches: true,
+                                  bracketMatching: true,
                                 }}
                             />
                         </div>
