@@ -111,7 +111,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: sblite-openwrt-apk-${{ matrix.arch }}
-          path: bin/packages/${{ matrix.target }}/action/sblite*.apk
+          path: bin/packages/${{ matrix.target }}/action/sblite-${{ matrix.arch }}-openwrt.apk
           retention-days: 1
 
   release:
