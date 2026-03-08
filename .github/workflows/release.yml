@@ -4,6 +4,8 @@ on:
   push:
     tags:
       - 'v*'
+    branches:
+      - openwrt
 
 permissions:
   contents: write
@@ -99,7 +101,7 @@ jobs:
           ARCH: ${{ matrix.target }}
           FEED_DIR: openwrt
           PACKAGES: sblite
-          EXTRA_CMD: sed -i "s/CONFIG_PACKAGE_FORMAT_IPK=y/# CONFIG_PACKAGE_FORMAT_IPK is not set/" .config; echo "CONFIG_PACKAGE_FORMAT_APK=y" >> .config
+          EXTRA_CMD: ls -al; echo "CONFIG_PACKAGE_FORMAT_APK=y" >> .config
           V: s
 
       - name: Find and Upload APK
