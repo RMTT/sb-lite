@@ -102,6 +102,7 @@ jobs:
           FEED_DIR: ${{ github.workspace }}/openwrt
           PACKAGES: sblite
           EXTRA_CMD: ls -al; echo "CONFIG_PACKAGE_FORMAT_APK=y" >> .config
+          NO_SHFMT_CHECK: true
           V: s
 
       - name: Find and Upload APK
