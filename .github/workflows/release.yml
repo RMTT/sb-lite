@@ -4,6 +4,8 @@ on:
   push:
     tags:
       - 'v*'
+    branches:
+      - openwrt
 
 permissions:
   contents: write
@@ -97,9 +99,10 @@ jobs:
         uses: openwrt/gh-action-sdk@main
         env:
           ARCH: ${{ matrix.target }}
-          FEED_DIR: openwrt
+          FEED_DIR: ${{ github.workspace }}/openwrt
           PACKAGES: sblite
-          EXTRA_CMD: sed -i "s/CONFIG_PACKAGE_FORMAT_IPK=y/# CONFIG_PACKAGE_FORMAT_IPK is not set/" .config; echo "CONFIG_PACKAGE_FORMAT_APK=y" >> .config
+          EXTRA_CMD: ls -al; echo "CONFIG_PACKAGE_FORMAT_APK=y" >> .config
+          NO_SHFMT_CHECK: true
           V: s
 
       - name: Find and Upload APK
