@@ -4,8 +4,6 @@ on:
   push:
     tags:
       - 'v*'
-    branches:
-      - openwrt
 
 permissions:
   contents: write
@@ -101,9 +99,13 @@ jobs:
           ARCH: ${{ matrix.target }}
           FEED_DIR: ${{ github.workspace }}/openwrt
           PACKAGES: sblite
-          EXTRA_CMD: ls -al; echo "CONFIG_PACKAGE_FORMAT_APK=y" >> .config
+          EXTRA_CMD: echo "CONFIG_PACKAGE_FORMAT_APK=y" >> .config
           NO_SHFMT_CHECK: true
           V: s
+
+      - name: Rename apk file
+        run: |
+          mv bin/packages/${{ matrix.target }}/action/sblite*.apk bin/packages/${{ matrix.target }}/action/sblite-${{matrix.arch}}-openwrt.apk
 
       - name: Find and Upload APK
         uses: actions/upload-artifact@v4
