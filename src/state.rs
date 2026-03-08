@@ -24,7 +24,7 @@ pub struct Subscription {
     #[serde(default)]
     pub routing_mark: Option<String>,
     #[serde(default)]
-    pub custom_fields: Option<serde_json::Value>,
+    pub custom_fields: Option<String>,
     pub last_fetched: Option<chrono::DateTime<chrono::Utc>>,
     pub raw_data: Option<String>,
 }

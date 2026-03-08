@@ -76,10 +76,26 @@ pub async fn generate_and_write_active_config(state: &AppState) -> Result<(), St
                     outbound["routing_mark"] = serde_json::Value::String(routing_mark.clone());
                 }
 
-                if let Some(custom_fields) = &sub.custom_fields {
-                    if let Some(obj) = custom_fields.as_object() {
-                        for (key, value) in obj {
-                            outbound[key] = value.clone();
+                if let Some(custom_fields_str) = &sub.custom_fields {
+                    if !custom_fields_str.trim().is_empty() {
+                        match serde_json::from_str::<serde_json::Value>(custom_fields_str) {
+                            Ok(serde_json::Value::Object(obj)) => {
+                                for (key, value) in obj {
+                                    outbound[key] = value.clone();
+                                }
+                            }
+                            Ok(_) => {
+                                return Err(format!(
+                                    "custom_fields must be a JSON object, got: {}",
+                                    custom_fields_str
+                                ));
+                            }
+                            Err(e) => {
+                                return Err(format!(
+                                    "Failed to parse custom_fields as JSON: {} (content: {})",
+                                    e, custom_fields_str
+                                ));
+                            }
                         }
                     }
                 }

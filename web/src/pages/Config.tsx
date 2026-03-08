@@ -21,7 +21,7 @@ export interface Subscription {
     url: string
     prefix?: string
     routing_mark?: string
-    custom_fields?: Record<string, unknown>
+    custom_fields?: string
     last_fetched: string | null
     raw_data: string | null
 }
@@ -382,7 +382,7 @@ export function Config() {
           setModalUrl(sub.url);
           setModalPrefix(sub.prefix || '');
           setModalRoutingMark(sub.routing_mark || '');
-          setModalCustomFieldsContent(sub.custom_fields ? JSON.stringify(sub.custom_fields, null, 2) : '{}');
+          setModalCustomFieldsContent(sub.custom_fields ? sub.custom_fields : '{}');
       } else {
           setEditingSubscriptionIndex(null);
           setModalUrl(newUrl.trim());
@@ -394,7 +394,7 @@ export function Config() {
   }
 
   const handleSaveSubscription = async () => {
-      let parsedCustomFields = undefined;
+      let parsedCustomFieldsStr = undefined;
       const urlToAdd = modalUrl.trim();
 
       if (!urlToAdd) {
@@ -409,7 +409,8 @@ export function Config() {
 
       try {
           if (modalCustomFieldsContent.trim() !== '') {
-              parsedCustomFields = JSON.parse(modalCustomFieldsContent);
+              JSON.parse(modalCustomFieldsContent); // validate it's JSON
+              parsedCustomFieldsStr = modalCustomFieldsContent;
           }
       } catch {
           toast.error('Invalid JSON format for custom fields. Please fix errors before saving.');
@@ -448,7 +449,7 @@ export function Config() {
               url: urlToAdd,
               prefix: modalPrefix.trim() || undefined,
               routing_mark: modalRoutingMark.trim() || undefined,
-              custom_fields: parsedCustomFields,
+              custom_fields: parsedCustomFieldsStr,
               last_fetched: validationData.last_fetched,
               raw_data: validationData.raw_data
           }
