@@ -20,6 +20,10 @@ define Package/sblite/description
   A lightweight Sing-box controller with Web UI.
 endef
 
+define Build/Download
+	# Do nothing
+endef
+
 define Build/Prepare
 	mkdir -p $(PKG_BUILD_DIR)
 	# Copy the pre-built binary from the artifacts directory into the build directory
@@ -28,6 +32,10 @@ endef
 
 define Build/Compile
 	# This package uses precompiled binaries provided externally.
+endef
+
+define Build/Clean
+	# Do nothing
 endef
 
 define Package/sblite/install
