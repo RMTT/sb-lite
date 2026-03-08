@@ -76,6 +76,14 @@ pub async fn generate_and_write_active_config(state: &AppState) -> Result<(), St
                     outbound["routing_mark"] = serde_json::Value::String(routing_mark.clone());
                 }
 
+                if let Some(custom_fields) = &sub.custom_fields {
+                    if let Some(obj) = custom_fields.as_object() {
+                        for (key, value) in obj {
+                            outbound[key] = value.clone();
+                        }
+                    }
+                }
+
                 new_outbounds.push(outbound);
                 all_tags.push(tag);
             }

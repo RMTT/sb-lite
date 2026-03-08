@@ -21,6 +21,7 @@ export interface Subscription {
     url: string
     prefix?: string
     routing_mark?: string
+    custom_fields?: Record<string, unknown>
     last_fetched: string | null
     raw_data: string | null
 }
@@ -41,6 +42,14 @@ export function Config() {
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([])
   const [selectors, setSelectors] = useState<Selector[]>([])
   const [newRoutingMark, setNewRoutingMark] = useState('')
+
+  // Advanced Modal State
+  const [isAdvancedModalOpen, setIsAdvancedModalOpen] = useState(false)
+  const [editingSubscriptionIndex, setEditingSubscriptionIndex] = useState<number | null>(null)
+  const [modalUrl, setModalUrl] = useState('')
+  const [modalPrefix, setModalPrefix] = useState('')
+  const [modalRoutingMark, setModalRoutingMark] = useState('')
+  const [modalCustomFieldsContent, setModalCustomFieldsContent] = useState('{}')
   const [externalController, setExternalController] = useState('127.0.0.1:9091')
   const [, setIsSavingCustomFields] = useState(false)
 
@@ -364,6 +373,127 @@ export function Config() {
 
   const [newUrl, setNewUrl] = useState('')
   const [newPrefix, setNewPrefix] = useState('')
+
+
+  const handleOpenAdvancedModal = (index?: number) => {
+      if (index !== undefined) {
+          const sub = subscriptions[index];
+          setEditingSubscriptionIndex(index);
+          setModalUrl(sub.url);
+          setModalPrefix(sub.prefix || '');
+          setModalRoutingMark(sub.routing_mark || '');
+          setModalCustomFieldsContent(sub.custom_fields ? JSON.stringify(sub.custom_fields, null, 2) : '{}');
+      } else {
+          setEditingSubscriptionIndex(null);
+          setModalUrl(newUrl.trim());
+          setModalPrefix(newPrefix.trim());
+          setModalRoutingMark(newRoutingMark.trim());
+          setModalCustomFieldsContent('{}');
+      }
+      setIsAdvancedModalOpen(true);
+  }
+
+  const handleSaveSubscription = async () => {
+      let parsedCustomFields = undefined;
+      const urlToAdd = modalUrl.trim();
+
+      if (!urlToAdd) {
+          toast.error("URL cannot be empty.");
+          return;
+      }
+
+      if (editingSubscriptionIndex === null && subscriptions.some(sub => sub.url === urlToAdd)) {
+          toast.error("This subscription URL has already been added.");
+          return;
+      }
+
+      try {
+          if (modalCustomFieldsContent.trim() !== '') {
+              parsedCustomFields = JSON.parse(modalCustomFieldsContent);
+          }
+      } catch {
+          toast.error('Invalid JSON format for custom fields. Please fix errors before saving.');
+          return;
+      }
+
+      setIsAddingUrl(true);
+      try {
+          // Validate if new URL, or if URL changed
+          let validationData: { last_fetched: string | null; raw_data: string | null } = { last_fetched: null, raw_data: null };
+
+          if (editingSubscriptionIndex === null || subscriptions[editingSubscriptionIndex].url !== urlToAdd) {
+              const valRes = await fetch('/api/subscriptions/validate', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ url: urlToAdd })
+              })
+
+              if (!valRes.ok) {
+                  let msg = valRes.statusText
+                  try {
+                      const errorText = await valRes.text()
+                      if (errorText) msg = errorText
+                  } catch { console.error("Error reading text"); }
+                  throw new Error(msg)
+              }
+              validationData = await valRes.json();
+          } else {
+              validationData = {
+                  last_fetched: subscriptions[editingSubscriptionIndex].last_fetched,
+                  raw_data: subscriptions[editingSubscriptionIndex].raw_data
+              };
+          }
+
+          const updatedSub: Subscription = {
+              url: urlToAdd,
+              prefix: modalPrefix.trim() || undefined,
+              routing_mark: modalRoutingMark.trim() || undefined,
+              custom_fields: parsedCustomFields,
+              last_fetched: validationData.last_fetched,
+              raw_data: validationData.raw_data
+          }
+
+          const updatedSubs = [...subscriptions];
+          if (editingSubscriptionIndex !== null) {
+              updatedSubs[editingSubscriptionIndex] = updatedSub;
+          } else {
+              updatedSubs.push(updatedSub);
+          }
+
+          setSubscriptions(updatedSubs);
+
+          if (editingSubscriptionIndex === null) {
+              setNewUrl('');
+              setNewPrefix('');
+              setNewRoutingMark('');
+          }
+
+          setIsAdvancedModalOpen(false);
+          setIsSavingCustomFields(true)
+
+          const response = await fetch('/api/custom-fields', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                  subscriptions: updatedSubs,
+                  selectors: selectors,
+                  external_controller: externalController
+              })
+          })
+
+          if (response.ok) {
+              toast.success(editingSubscriptionIndex !== null ? 'Subscription updated!' : 'Subscription validated and added!')
+              fetchConfigs() // reload
+          } else {
+              throw new Error(`Failed to save custom fields: ${response.statusText}`)
+          }
+      } catch (err) {
+          toast.error(err instanceof Error ? err.message : 'Failed to save subscription.')
+      } finally {
+          setIsAddingUrl(false)
+          setIsSavingCustomFields(false)
+      }
+  }
 
   const handleAddUrl = async () => {
       const urlToAdd = newUrl.trim()
@@ -699,6 +829,12 @@ export function Config() {
               >
                   {isAddingUrl ? 'Adding...' : 'Add'}
               </button>
+              <button
+                  onClick={() => handleOpenAdvancedModal()}
+                  className="px-4 py-2.5 bg-zinc-800/50 hover:bg-zinc-800 text-zinc-300 text-sm font-semibold rounded-md transition-colors shadow-sm whitespace-nowrap border border-zinc-700/50"
+              >
+                  Advanced
+              </button>
             </div>
             {subscriptions.length === 0 ? (
                 <div className="text-sm text-zinc-600 text-center py-6 bg-zinc-950/30 rounded-lg border border-zinc-800/30">
@@ -707,7 +843,15 @@ export function Config() {
             ) : (
                 <div className="space-y-3">
                   {subscriptions.map((sub, idx) => (
-                      <div key={idx} className="flex items-center justify-between p-4 bg-[#09090b]/50 border border-zinc-800/50 rounded-lg group">
+                      <div
+                          key={idx}
+                          className="flex items-center justify-between p-4 bg-[#09090b]/50 border border-zinc-800/50 rounded-lg group cursor-pointer hover:border-zinc-700/50 transition-colors"
+                          onClick={(e) => {
+                              // Don't open modal if clicking on buttons
+                              if ((e.target as HTMLElement).closest('button')) return;
+                              handleOpenAdvancedModal(idx);
+                          }}
+                      >
                         <div className="flex items-center gap-4">
                           <div className="w-8 h-8 rounded bg-zinc-800/50 flex items-center justify-center text-zinc-400">
                             <Link className="w-4 h-4" />
@@ -1111,6 +1255,107 @@ export function Config() {
               </div>
           </div>
       )}
+
+      {/* Advanced Subscription Modal */}
+      {isAdvancedModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+              <div className="bg-[#0c0c0e] border border-zinc-800 rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
+                  <div className="p-5 border-b border-zinc-800 flex justify-between items-center bg-zinc-900/50">
+                      <h3 className="text-base font-semibold text-white">
+                          {editingSubscriptionIndex !== null ? 'Edit Subscription' : 'Add Subscription (Advanced)'}
+                      </h3>
+                      <button onClick={() => setIsAdvancedModalOpen(false)} className="text-zinc-500 hover:text-white transition-colors">
+                          <X className="w-5 h-5" />
+                      </button>
+                  </div>
+                  <div className="p-6 overflow-y-auto flex-1 space-y-4">
+                      <div>
+                          <label className="block text-xs font-bold text-zinc-500 uppercase tracking-widest mb-2">URL</label>
+                          <input
+                              type="text"
+                              value={modalUrl}
+                              onChange={(e) => setModalUrl(e.target.value)}
+                              className="w-full bg-[#121214] border border-zinc-800 rounded-lg px-4 py-2 text-sm text-zinc-200 focus:outline-none focus:border-zinc-600 focus:ring-1 focus:ring-zinc-600 transition-all"
+                              placeholder="https://example.com/sub"
+                          />
+                      </div>
+                      <div className="flex gap-4">
+                          <div className="flex-1">
+                              <label className="block text-xs font-bold text-zinc-500 uppercase tracking-widest mb-2">Prefix</label>
+                              <input
+                                  type="text"
+                                  value={modalPrefix}
+                                  onChange={(e) => setModalPrefix(e.target.value)}
+                                  className="w-full bg-[#121214] border border-zinc-800 rounded-lg px-4 py-2 text-sm text-zinc-200 focus:outline-none focus:border-zinc-600 focus:ring-1 focus:ring-zinc-600 transition-all"
+                                  placeholder="e.g. US"
+                              />
+                          </div>
+                          <div className="flex-1">
+                              <label className="block text-xs font-bold text-zinc-500 uppercase tracking-widest mb-2">Routing Mark</label>
+                              <input
+                                  type="text"
+                                  value={modalRoutingMark}
+                                  onChange={(e) => setModalRoutingMark(e.target.value)}
+                                  className="w-full bg-[#121214] border border-zinc-800 rounded-lg px-4 py-2 text-sm text-zinc-200 focus:outline-none focus:border-zinc-600 focus:ring-1 focus:ring-zinc-600 transition-all"
+                                  placeholder="Routing Mark"
+                              />
+                          </div>
+                      </div>
+                      <div>
+                          <label className="block text-xs font-bold text-zinc-500 uppercase tracking-widest mb-2 flex justify-between">
+                              <span>Custom Fields (JSON)</span>
+                              <button
+                                  onClick={() => {
+                                      try {
+                                          const parsed = JSON.parse(modalCustomFieldsContent);
+                                          setModalCustomFieldsContent(JSON.stringify(parsed, null, 2));
+                                      } catch {
+                                          toast.error('Invalid JSON. Cannot format.');
+                                      }
+                                  }}
+                                  className="text-[10px] text-blue-400 hover:text-blue-300 normal-case flex items-center gap-1"
+                              >
+                                  <Wand2 className="w-3 h-3" /> Format
+                              </button>
+                          </label>
+                          <div className="border border-zinc-800 rounded-lg overflow-hidden h-64 bg-[#1e1e1e]">
+                              <CodeMirror
+                                  value={modalCustomFieldsContent}
+                                  height="100%"
+                                  theme={oneDark}
+                                  extensions={[json()]}
+                                  onChange={(val) => setModalCustomFieldsContent(val)}
+                                  basicSetup={{
+                                      lineNumbers: true,
+                                      foldGutter: true,
+                                      highlightActiveLine: true,
+                                  }}
+                              />
+                          </div>
+                          <p className="text-[10px] text-zinc-500 mt-2">
+                              These fields will be merged into every outbound node generated from this subscription.
+                          </p>
+                      </div>
+                  </div>
+                  <div className="p-4 border-t border-zinc-800 flex justify-end gap-3 bg-zinc-900/50">
+                      <button
+                          onClick={() => setIsAdvancedModalOpen(false)}
+                          className="px-4 py-2 text-sm font-medium text-zinc-400 hover:text-white transition-colors"
+                      >
+                          Cancel
+                      </button>
+                      <button
+                          onClick={handleSaveSubscription}
+                          disabled={isAddingUrl}
+                          className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm disabled:opacity-50"
+                      >
+                          {isAddingUrl ? 'Saving...' : 'Save Subscription'}
+                      </button>
+                  </div>
+              </div>
+          </div>
+      )}
+
     </>
   )
 }

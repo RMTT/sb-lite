@@ -23,6 +23,8 @@ pub struct Subscription {
     pub prefix: Option<String>,
     #[serde(default)]
     pub routing_mark: Option<String>,
+    #[serde(default)]
+    pub custom_fields: Option<serde_json::Value>,
     pub last_fetched: Option<chrono::DateTime<chrono::Utc>>,
     pub raw_data: Option<String>,
 }
