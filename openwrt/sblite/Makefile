@@ -21,7 +21,7 @@ define Package/sblite/description
 endef
 
 define Build/Download
-	# Do nothing
+	@echo "Skipping download for pre-built binary..."
 endef
 
 define Build/Prepare
