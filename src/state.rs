@@ -143,7 +143,9 @@ impl AppState {
     pub async fn check_config(&self) -> Result<(), String> {
         let tmp_path = std::path::PathBuf::from("/tmp/sblite-active.json");
         if !tmp_path.exists() {
-            return Err("Merged config not found".to_string());
+            if let Err(e) = crate::merge::generate_and_write_active_config(self).await {
+                return Err(format!("Failed to generate merged config: {}", e));
+            }
         }
 
         match tokio::process::Command::new(&self.sing_box_path)
