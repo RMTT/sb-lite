@@ -62,61 +62,9 @@ jobs:
           path: dist/${{ matrix.artifact_name }}.tar.gz
           retention-days: 1
 
-  openwrt-apk:
-    name: Build OpenWrt APK for ${{ matrix.arch }}
-    needs: build
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        include:
-          - arch: x86_64
-            target: x86_64
-            artifact: sblite-amd64-linux
-          - arch: aarch64
-            target: aarch64_cortex-a53
-            artifact: sblite-arm64-linux
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Download artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: ${{ matrix.artifact }}
-          path: /tmp/sblite-artifact
-
-      - name: Extract binary
-        run: |
-          tar -xzf /tmp/sblite-artifact/${{ matrix.artifact }}.tar.gz -C /tmp/sblite-artifact
-          mv /tmp/sblite-artifact/${{ matrix.artifact }} sblite-bin
-          chmod +x sblite-bin
-
-      - name: Build OpenWrt Package
-        uses: openwrt/gh-action-sdk@main
-        env:
-          ARCH: ${{ matrix.target }}
-          FEED_DIR: ${{ github.workspace }}/openwrt
-          PACKAGES: sblite
-          EXTRA_CMD: echo "CONFIG_PACKAGE_FORMAT_APK=y" >> .config
-          NO_SHFMT_CHECK: true
-          V: s
-
-      - name: Rename apk file
-        run: |
-          mv bin/packages/${{ matrix.target }}/action/sblite*.apk bin/packages/${{ matrix.target }}/action/sblite-${{matrix.arch}}-openwrt.apk
-
-      - name: Find and Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: sblite-openwrt-apk-${{ matrix.arch }}
-          path: bin/packages/${{ matrix.target }}/action/sblite-${{ matrix.arch }}-openwrt.apk
-          retention-days: 1
-
   release:
     name: Create Release
-    needs: [build, openwrt-apk]
+    needs: [build]
     runs-on: ubuntu-latest
     permissions:
       contents: write
