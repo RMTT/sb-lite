@@ -31,6 +31,8 @@
             pkg-config
             rust-analyzer
             rustfmt
+            typescript
+            nodejs
           ];
           LIBCLANG_PATH = "${pkgs.llvmPackages.libclang.lib}/lib";
         };
