@@ -47,6 +47,7 @@ pub async fn update_custom_fields_handler(
     {
         Ok(_) => {
             info!("Custom fields updated");
+            state.fetch_missing_subscriptions().await;
             // Regenerate config if there is an active one
             if let Err(e) = crate::merge::generate_and_write_active_config(&state).await {
                 error!(

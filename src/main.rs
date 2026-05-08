@@ -139,13 +139,16 @@ async fn main() {
 
     let shared_state = AppState {
         state_directory: args.state_directory.clone(),
-        persisted_state: Arc::new(RwLock::new(persisted_state.clone())),
+        persisted_state: Arc::new(RwLock::new(persisted_state)),
         sing_box_path,
         sing_box_process: Arc::new(tokio::sync::Mutex::new(None)),
         start_time: Arc::new(tokio::sync::Mutex::new(None)),
     };
 
-    if persisted_state.auto_start {
+    // Fetch missing subscriptions at startup
+    shared_state.fetch_missing_subscriptions().await;
+
+    if shared_state.get_auto_start().await {
         info!("Auto-start is enabled. Attempting to start sing-box...");
 
         if let Err(e) = shared_state.start_sing_box(false).await {

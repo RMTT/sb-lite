@@ -315,3 +315,63 @@ impl AppState {
         }
     }
 }
+
+impl AppState {
+    pub async fn fetch_subscription(&self, index: usize) -> Result<(), String> {
+        let (subs, _, _) = self.get_custom_fields().await;
+        let url = subs
+            .get(index)
+            .ok_or("Invalid subscription index")?
+            .url
+            .clone();
+
+        let client = reqwest::Client::builder()
+            .user_agent("Shadowrocket")
+            .build()
+            .unwrap_or_default();
+
+        match client.get(&url).send().await {
+            Ok(resp) => {
+                let status = resp.status();
+                if status.is_success() {
+                    let text = resp.text().await.map_err(|e| e.to_string())?;
+                    // Validate SIP008
+                    if let Err(e) = serde_json::from_str::<crate::handlers::Sip008Data>(&text) {
+                        return Err(format!("Invalid SIP008 format for {}: {}", url, e));
+                    }
+
+                    self.update_subscription(index, chrono::Utc::now(), text)
+                        .await?;
+                    log::info!("Successfully fetched subscription: {}", url);
+
+                    // Regenerate config if there is an active one
+                    if let Err(e) = crate::merge::generate_and_write_active_config(self).await {
+                        log::error!(
+                            "Failed to generate and write active config after fetching subscription: {}",
+                            e
+                        );
+                    }
+                    Ok(())
+                } else {
+                    Err(format!(
+                        "Failed to fetch subscription {}: HTTP {}",
+                        url, status
+                    ))
+                }
+            }
+            Err(e) => Err(format!("Failed to fetch subscription {}: {}", url, e)),
+        }
+    }
+
+    pub async fn fetch_missing_subscriptions(&self) {
+        let (subs, _, _) = self.get_custom_fields().await;
+        for (i, sub) in subs.iter().enumerate() {
+            if sub.raw_data.is_none() {
+                log::info!("Fetching missing subscription data for {}", sub.url);
+                if let Err(e) = self.fetch_subscription(i).await {
+                    log::error!("{}", e);
+                }
+            }
+        }
+    }
+}
