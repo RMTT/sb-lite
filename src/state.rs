@@ -48,6 +48,23 @@ pub struct PersistedState {
     pub external_controller: String,
 }
 
+#[derive(Serialize, Deserialize, Clone)]
+pub struct SubscriptionConfig {
+    pub url: String,
+    pub prefix: Option<String>,
+    pub routing_mark: Option<String>,
+    pub custom_fields: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct ExtraConfig {
+    pub active_config: Option<String>,
+    pub subscriptions: Vec<SubscriptionConfig>,
+    pub selectors: Vec<Selector>,
+    pub auto_start: bool,
+    pub external_controller: String,
+}
+
 impl Default for PersistedState {
     fn default() -> Self {
         Self {
@@ -60,9 +77,84 @@ impl Default for PersistedState {
     }
 }
 
+impl PersistedState {
+    pub fn to_extra_config(&self) -> ExtraConfig {
+        ExtraConfig {
+            active_config: self.active_config.clone(),
+            subscriptions: self
+                .subscriptions
+                .iter()
+                .map(|s| SubscriptionConfig {
+                    url: s.url.clone(),
+                    prefix: s.prefix.clone(),
+                    routing_mark: s.routing_mark.clone(),
+                    custom_fields: s.custom_fields.clone(),
+                })
+                .collect(),
+            selectors: self.selectors.clone(),
+            auto_start: self.auto_start,
+            external_controller: self.external_controller.clone(),
+        }
+    }
+
+    pub fn merge_extra(&mut self, extra: ExtraConfig) {
+        self.active_config = extra.active_config;
+        self.selectors = extra.selectors;
+        self.auto_start = extra.auto_start;
+        self.external_controller = extra.external_controller;
+
+        // Merge subscriptions: update existing ones, add new ones
+        let mut new_subscriptions = Vec::new();
+        for sub_cfg in extra.subscriptions {
+            if let Some(existing) = self.subscriptions.iter().find(|s| s.url == sub_cfg.url) {
+                let mut updated = existing.clone();
+                updated.prefix = sub_cfg.prefix;
+                updated.routing_mark = sub_cfg.routing_mark;
+                updated.custom_fields = sub_cfg.custom_fields;
+                new_subscriptions.push(updated);
+            } else {
+                new_subscriptions.push(Subscription {
+                    url: sub_cfg.url,
+                    prefix: sub_cfg.prefix,
+                    routing_mark: sub_cfg.routing_mark,
+                    custom_fields: sub_cfg.custom_fields,
+                    last_fetched: None,
+                    raw_data: None,
+                });
+            }
+        }
+        self.subscriptions = new_subscriptions;
+    }
+}
+
 impl AppState {
+    pub fn configs_dir(&self) -> PathBuf {
+        self.state_directory.join("configs")
+    }
+
     pub fn state_file_path(&self) -> PathBuf {
         self.state_directory.join("state")
+    }
+
+    pub fn extra_json_path(&self) -> PathBuf {
+        self.state_directory.join("extra.json")
+    }
+
+    pub async fn save_state(&self, state: &PersistedState) -> Result<(), String> {
+        // Save binary state
+        let bytes = bincode::serialize(state).map_err(|e| e.to_string())?;
+        tokio::fs::write(self.state_file_path(), bytes)
+            .await
+            .map_err(|e| e.to_string())?;
+
+        // Save extra.json
+        let extra = state.to_extra_config();
+        let json = serde_json::to_string_pretty(&extra).map_err(|e| e.to_string())?;
+        tokio::fs::write(self.extra_json_path(), json)
+            .await
+            .map_err(|e| e.to_string())?;
+
+        Ok(())
     }
 
     pub async fn get_active_config(&self) -> Option<String> {
@@ -73,11 +165,7 @@ impl AppState {
     pub async fn set_active_config(&self, filename: String) -> Result<(), String> {
         let mut state = self.persisted_state.write().await;
         state.active_config = Some(filename);
-
-        let bytes = bincode::serialize(&*state).map_err(|e| e.to_string())?;
-        tokio::fs::write(self.state_file_path(), bytes)
-            .await
-            .map_err(|e| e.to_string())
+        self.save_state(&state).await
     }
 
     pub async fn get_custom_fields(&self) -> (Vec<Subscription>, Vec<Selector>, String) {
@@ -99,12 +187,9 @@ impl AppState {
         state.subscriptions = subscriptions;
         state.selectors = selectors;
         state.external_controller = external_controller;
-
-        let bytes = bincode::serialize(&*state).map_err(|e| e.to_string())?;
-        tokio::fs::write(self.state_file_path(), bytes)
-            .await
-            .map_err(|e| e.to_string())
+        self.save_state(&state).await
     }
+
     pub async fn update_subscription(
         &self,
         index: usize,
@@ -119,10 +204,11 @@ impl AppState {
             return Err("Subscription index out of bounds".to_string());
         }
 
-        let bytes = bincode::serialize(&*state).map_err(|e| e.to_string())?;
-        tokio::fs::write(self.state_file_path(), bytes)
-            .await
-            .map_err(|e| e.to_string())
+        // Just save binary state for runtime updates?
+        // Actually, the user said "extra.json only saves configurations".
+        // raw_data and last_fetched are runtime state, so they don't go to extra.json.
+        // But save_state updates both. That's fine, to_extra_config filters them out.
+        self.save_state(&state).await
     }
 
     pub async fn get_auto_start(&self) -> bool {
@@ -133,11 +219,7 @@ impl AppState {
     pub async fn set_auto_start(&self, enabled: bool) -> Result<(), String> {
         let mut state = self.persisted_state.write().await;
         state.auto_start = enabled;
-
-        let bytes = bincode::serialize(&*state).map_err(|e| e.to_string())?;
-        tokio::fs::write(self.state_file_path(), bytes)
-            .await
-            .map_err(|e| e.to_string())
+        self.save_state(&state).await
     }
 
     pub async fn check_config(&self) -> Result<(), String> {
@@ -229,6 +311,66 @@ impl AppState {
                 let err_msg = format!("Failed to spawn sing-box process: {}", e);
                 log::error!("{}", err_msg);
                 Err(err_msg)
+            }
+        }
+    }
+}
+
+impl AppState {
+    pub async fn fetch_subscription(&self, index: usize) -> Result<(), String> {
+        let (subs, _, _) = self.get_custom_fields().await;
+        let url = subs
+            .get(index)
+            .ok_or("Invalid subscription index")?
+            .url
+            .clone();
+
+        let client = reqwest::Client::builder()
+            .user_agent("Shadowrocket")
+            .build()
+            .unwrap_or_default();
+
+        match client.get(&url).send().await {
+            Ok(resp) => {
+                let status = resp.status();
+                if status.is_success() {
+                    let text = resp.text().await.map_err(|e| e.to_string())?;
+                    // Validate SIP008
+                    if let Err(e) = serde_json::from_str::<crate::handlers::Sip008Data>(&text) {
+                        return Err(format!("Invalid SIP008 format for {}: {}", url, e));
+                    }
+
+                    self.update_subscription(index, chrono::Utc::now(), text)
+                        .await?;
+                    log::info!("Successfully fetched subscription: {}", url);
+
+                    // Regenerate config if there is an active one
+                    if let Err(e) = crate::merge::generate_and_write_active_config(self).await {
+                        log::error!(
+                            "Failed to generate and write active config after fetching subscription: {}",
+                            e
+                        );
+                    }
+                    Ok(())
+                } else {
+                    Err(format!(
+                        "Failed to fetch subscription {}: HTTP {}",
+                        url, status
+                    ))
+                }
+            }
+            Err(e) => Err(format!("Failed to fetch subscription {}: {}", url, e)),
+        }
+    }
+
+    pub async fn fetch_missing_subscriptions(&self) {
+        let (subs, _, _) = self.get_custom_fields().await;
+        for (i, sub) in subs.iter().enumerate() {
+            if sub.raw_data.is_none() {
+                log::info!("Fetching missing subscription data for {}", sub.url);
+                if let Err(e) = self.fetch_subscription(i).await {
+                    log::error!("{}", e);
+                }
             }
         }
     }

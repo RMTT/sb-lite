@@ -47,6 +47,7 @@ pub async fn update_custom_fields_handler(
     {
         Ok(_) => {
             info!("Custom fields updated");
+            state.fetch_missing_subscriptions().await;
             // Regenerate config if there is an active one
             if let Err(e) = crate::merge::generate_and_write_active_config(&state).await {
                 error!(
@@ -75,7 +76,7 @@ pub struct ConfigsResponse {
 
 pub async fn list_configs_handler(State(state): State<AppState>) -> Response {
     let mut files = Vec::new();
-    let mut entries = match tokio::fs::read_dir(&state.state_directory).await {
+    let mut entries = match tokio::fs::read_dir(state.configs_dir()).await {
         Ok(e) => e,
         Err(e) => {
             error!("Failed to read state directory: {}", e);
@@ -119,7 +120,7 @@ pub async fn get_config_handler(
         None => return (StatusCode::BAD_REQUEST, "Invalid filename").into_response(),
     };
 
-    let config_path = state.state_directory.join(&safe_name);
+    let config_path = state.configs_dir().join(&safe_name);
     match tokio::fs::read_to_string(&config_path).await {
         Ok(content) => (
             StatusCode::OK,
@@ -150,7 +151,7 @@ pub async fn delete_config_handler(
         None => return (StatusCode::BAD_REQUEST, "Invalid filename").into_response(),
     };
 
-    let config_path = state.state_directory.join(&safe_name);
+    let config_path = state.configs_dir().join(&safe_name);
     match tokio::fs::remove_file(&config_path).await {
         Ok(_) => {
             info!("Config file deleted at {:?}", config_path);
@@ -194,7 +195,7 @@ pub async fn update_config_handler(
         None => return (StatusCode::BAD_REQUEST, "Invalid filename").into_response(),
     };
 
-    let config_path = state.state_directory.join(&safe_name);
+    let config_path = state.configs_dir().join(&safe_name);
     match tokio::fs::write(&config_path, body).await {
         Ok(_) => {
             info!("Config file updated at {:?}", config_path);
@@ -255,7 +256,7 @@ pub async fn apply_config_handler(
         None => return (StatusCode::BAD_REQUEST, "Invalid filename").into_response(),
     };
 
-    let config_path = state.state_directory.join(&safe_name);
+    let config_path = state.configs_dir().join(&safe_name);
     if tokio::fs::metadata(&config_path).await.is_err() {
         return (StatusCode::NOT_FOUND, "Config file not found").into_response();
     }
