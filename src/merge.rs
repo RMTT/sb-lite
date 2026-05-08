@@ -9,7 +9,7 @@ use crate::handlers::Sip008Data;
 pub async fn generate_and_write_active_config(state: &AppState) -> Result<(), String> {
     let mut config: serde_json::Value = match state.get_active_config().await {
         Some(name) if !name.is_empty() => {
-            let config_path = state.state_directory.join(&name);
+            let config_path = state.configs_dir().join(&name);
             match tokio::fs::read_to_string(&config_path).await {
                 Ok(content) => match serde_json::from_str(&content) {
                     Ok(c) => c,

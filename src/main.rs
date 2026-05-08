@@ -47,6 +47,14 @@ async fn main() {
         );
         std::process::exit(1);
     }
+    let configs_dir = args.state_directory.join("configs");
+    if let Err(e) = std::fs::create_dir_all(&configs_dir) {
+        error!(
+            "Failed to create configs directory at {:?}: {}",
+            configs_dir, e
+        );
+        std::process::exit(1);
+    }
     info!("Using state directory at: {:?}", args.state_directory);
 
     let sing_box_path = args.state_directory.join("core");
@@ -107,7 +115,7 @@ async fn main() {
     info!("Using sing-box binary at: {:?}", sing_box_path);
 
     let state_file_path = args.state_directory.join("state");
-    let persisted_state = match std::fs::read(&state_file_path) {
+    let mut persisted_state = match std::fs::read(&state_file_path) {
         Ok(bytes) => match bincode::deserialize::<PersistedState>(&bytes) {
             Ok(state) => state,
             Err(e) => {
@@ -120,6 +128,14 @@ async fn main() {
         },
         Err(_) => PersistedState::default(),
     };
+
+    let extra_json_path = args.state_directory.join("extra.json");
+    if let Ok(content) = std::fs::read_to_string(&extra_json_path) {
+        if let Ok(extra) = serde_json::from_str::<crate::state::ExtraConfig>(&content) {
+            info!("Loaded extra configuration from extra.json");
+            persisted_state.merge_extra(extra);
+        }
+    }
 
     let shared_state = AppState {
         state_directory: args.state_directory.clone(),
