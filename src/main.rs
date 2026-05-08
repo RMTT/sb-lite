@@ -25,6 +25,12 @@ struct Args {
     /// State directory containing sing-box config and other data
     #[arg(long, default_value = "/var/lib/sblite")]
     state_directory: PathBuf,
+    /// Custom path to extra.json
+    #[arg(long)]
+    extra_json: Option<PathBuf>,
+    /// Custom path to configs directory
+    #[arg(long)]
+    configs_directory: Option<PathBuf>,
 }
 
 fn compute_sha256(data: &[u8]) -> String {
@@ -47,15 +53,24 @@ async fn main() {
         );
         std::process::exit(1);
     }
-    let configs_dir = args.state_directory.join("configs");
-    if let Err(e) = std::fs::create_dir_all(&configs_dir) {
-        error!(
+    let configs_directory = args
+        .configs_directory
+        .clone()
+        .unwrap_or_else(|| args.state_directory.join("configs"));
+    let extra_json_path = args
+        .extra_json
+        .clone()
+        .unwrap_or_else(|| args.state_directory.join("extra.json"));
+
+    if let Err(e) = std::fs::create_dir_all(&configs_directory) {
+        log::warn!(
             "Failed to create configs directory at {:?}: {}",
-            configs_dir, e
+            configs_directory,
+            e
         );
-        std::process::exit(1);
     }
-    info!("Using state directory at: {:?}", args.state_directory);
+    info!("Using configs directory at: {:?}", configs_directory);
+    info!("Using extra.json path at: {:?}", extra_json_path);
 
     let sing_box_path = args.state_directory.join("core");
     info!(
@@ -129,7 +144,7 @@ async fn main() {
         Err(_) => PersistedState::default(),
     };
 
-    let extra_json_path = args.state_directory.join("extra.json");
+    // Use the resolved extra_json_path
     if let Ok(content) = std::fs::read_to_string(&extra_json_path) {
         if let Ok(extra) = serde_json::from_str::<crate::state::ExtraConfig>(&content) {
             info!("Loaded extra configuration from extra.json");
@@ -139,6 +154,8 @@ async fn main() {
 
     let shared_state = AppState {
         state_directory: args.state_directory.clone(),
+        configs_directory,
+        extra_json_path,
         persisted_state: Arc::new(RwLock::new(persisted_state)),
         sing_box_path,
         sing_box_process: Arc::new(tokio::sync::Mutex::new(None)),

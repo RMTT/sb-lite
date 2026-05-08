@@ -10,6 +10,8 @@ pub fn default_external_controller() -> String {
 #[derive(Clone)]
 pub struct AppState {
     pub state_directory: PathBuf,
+    pub configs_directory: PathBuf,
+    pub extra_json_path: PathBuf,
     pub persisted_state: Arc<RwLock<PersistedState>>,
     pub sing_box_path: PathBuf,
     pub sing_box_process: Arc<tokio::sync::Mutex<Option<tokio::process::Child>>>,
@@ -129,7 +131,7 @@ impl PersistedState {
 
 impl AppState {
     pub fn configs_dir(&self) -> PathBuf {
-        self.state_directory.join("configs")
+        self.configs_directory.clone()
     }
 
     pub fn state_file_path(&self) -> PathBuf {
@@ -137,7 +139,7 @@ impl AppState {
     }
 
     pub fn extra_json_path(&self) -> PathBuf {
-        self.state_directory.join("extra.json")
+        self.extra_json_path.clone()
     }
 
     pub async fn save_state(&self, state: &PersistedState) -> Result<(), String> {
