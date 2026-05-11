@@ -1,0 +1,3 @@
+[target.aarch64-unknown-linux-musl]
+linker = "clang"
+rustflags = "-C link-arg=-target -C link-arg=aarch64-unknown-linux-musl -C link-arg=-fuse-ld=lld"

@@ -23,10 +23,10 @@
         };
       in
       {
-        devShells.default = (pkgs.mkShell.override { stdenv = pkgs.clangStdenv; }) {
+        devShells.default = pkgs.mkShell {
           nativeBuildInputs = with pkgs; [
-            cargo
-            rustc
+            llvmPackages.clang-unwrapped
+            rustup
             openssl
             pkg-config
             rust-analyzer
@@ -34,7 +34,7 @@
             nodejs
             typescript
           ];
-          LIBCLANG_PATH = "${pkgs.llvmPackages.libclang.lib}/lib";
+          CC_aarch64_unknown_linux_musl = "clang";
         };
       }
     );

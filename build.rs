@@ -29,6 +29,10 @@ fn get_target_os_arch() -> (&'static str, &'static str, &'static str) {
         panic!("Unsupported arch in target: {}", target);
     };
 
+    if arch == "arm64" && os == "linux" {
+        return ("linux", "arm64-musl", ".tar.gz");
+    }
+
     let ext = if os == "windows" { ".zip" } else { ".tar.gz" };
 
     (os, arch, ext)
